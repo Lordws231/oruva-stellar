@@ -60,6 +60,8 @@ Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver
 | ORVA asset | `ORVA:GBMC7N2HJSNHLPN2NIKTTUI2ZYJ6FFRN6IVTTTRARGRA4TZ7YHL45FOD` |
 | TUSD asset (USDC stand-in) | `TUSD:GBMC7N2HJSNHLPN2NIKTTUI2ZYJ6FFRN6IVTTTRARGRA4TZ7YHL45FOD` |
 | TUSD Stellar Asset Contract | `CCV3MCX7LAZV27PHTNJ2SGLGZ3XG2VCSP7BKUG7PSX35IHYF35EJOCEJ` |
+| USDC asset (Circle testnet) | `USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` |
+| USDC Stellar Asset Contract | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` (already deployed; decimals 7, verified 24 Nov 2026) |
 | oruva-escrow contract | `CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA` |
 
 Stellar Expert (testnet): https://stellar.expert/explorer/testnet/contract/CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA
@@ -84,6 +86,12 @@ TUSD trustlines and issue (rider holds 475 TUSD after the demo):
 - Driver trustline: `71a42884bd533cb94cc096ae152dbdeda584695a42c5190f743773c3b5df33e3`
 - Issue 500 TUSD to rider: `19a9eb9a133f95e94e5e6e1ce50a04760eb1980725e8cdbcab5f5cef9a570614`
 - Deploy TUSD Stellar Asset Contract: `13bde3aedb06db80f5c51c630c0113f5aa6343a166c5dadec26d3f36f73a8501`
+
+USDC trustlines (ready for the Circle faucet claim, 24 November 2026):
+
+- Rider trustline: `ee0bea1ab45ac618d681925b1e1950378d933d3a895b046217c2b935d49c4994`
+- Driver trustline: `8e707e8c8d0d7512027a097bfd7c339801f1716c90264ab31ad02fdb6647be8b`
+- USDC SAC already deployed (decimals 7, name `USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5`); no deploy needed.
 
 Escrow deploy and init:
 
@@ -210,8 +218,11 @@ change.
 ## What is next
 
 1. **Real USDC fare flow.** Get testnet USDC (Circle faucet, via the
-   founder's browser) and re-init the escrow against the real USDC asset
-   contract. Same contract, different token address.
+   founder's browser; rider + driver trustlines already set 24 Nov 2026,
+   USDC SAC confirmed at `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`)
+   and deploy a fresh escrow instance initialized with the USDC SAC
+   (`init` is one-time, so the TUSD instance stays as-is). Same contract,
+   different token address.
 2. **Off-ramp architecture.** The hard part of the build: a driver holding
    USDC needs naira in a bank account. The live SEP-24 NGN anchor (NGNC by
    Link.io) is effectively dormant, and global ramps (MoneyGram, $5 floor)
