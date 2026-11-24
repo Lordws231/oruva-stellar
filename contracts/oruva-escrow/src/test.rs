@@ -2,7 +2,8 @@
 
 use super::*;
 use soroban_sdk::testutils::Address as _;
-use soroban_sdk::{token, Env, String};
+use soroban_sdk::testutils::Events as _;
+use soroban_sdk::{token, Env, Event as _, String};
 
 /// One TUSD in the token's smallest unit (7 decimals).
 const ONE_TUSD: i128 = 10_000_000;
@@ -12,6 +13,7 @@ const FARE: i128 = 25 * ONE_TUSD;
 struct Fixture<'a> {
     client: OruvaEscrowClient<'a>,
     token: token::TokenClient<'a>,
+    token_address: Address,
     contract_id: Address,
     admin: Address,
     rider: Address,
@@ -26,16 +28,19 @@ fn setup(env: &Env) -> Fixture<'_> {
 
     // Test fare token (Stellar Asset Contract) with the rider funded.
     let sac = env.register_stellar_asset_contract_v2(admin.clone());
-    let token = token::TokenClient::new(env, &sac.address);
-    sac.mint(&rider, &(100 * ONE_TUSD));
+    let token_address = sac.address();
+    let sac_client = token::StellarAssetClient::new(env, &token_address);
+    let token = token::TokenClient::new(env, &token_address);
+    sac_client.mint(&rider, &(100 * ONE_TUSD));
 
     let contract_id = env.register(OruvaEscrow, ());
     let client = OruvaEscrowClient::new(env, &contract_id);
-    client.init(&admin, &sac.address);
+    client.init(&admin, &token_address);
 
     Fixture {
         client,
         token,
+        token_address,
         contract_id,
         admin,
         rider,
@@ -54,6 +59,21 @@ fn lock_moves_funds_and_records_ride() {
     let id = ride_id(&env, "ride-001");
 
     f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+
+    // The lock emits a FareLocked event from this contract. Events are only
+    // visible for the last invocation, so check them before any other call.
+    // (The token transfer event comes from the token contract, so filter by
+    // contract.)
+    assert_eq!(
+        env.events().all().filter_by_contract(&f.contract_id),
+        [FareLocked {
+            ride_id: id.clone(),
+            rider: f.rider.clone(),
+            driver: f.driver.clone(),
+            amount: FARE,
+        }
+        .to_xdr(&env, &f.contract_id)],
+    );
 
     assert_eq!(f.token.balance(&f.rider), 100 * ONE_TUSD - FARE);
     assert_eq!(f.token.balance(&f.contract_id), FARE);
@@ -150,7 +170,7 @@ fn lock_zero_amount_fails() {
 fn double_init_fails() {
     let env = Env::default();
     let f = setup(&env);
-    let res = f.client.try_init(&f.admin, &f.token.address);
+    let res = f.client.try_init(&f.admin, &f.token_address);
     assert_eq!(res, Err(Ok(Error::AlreadyInitialized)));
 }
 

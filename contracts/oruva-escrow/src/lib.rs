@@ -18,7 +18,7 @@
 //! Testnet only. No real funds.
 #![no_std]
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env,
+    contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Env,
     String,
 };
 
@@ -66,6 +66,39 @@ pub enum Error {
     NotFound = 4,
     NotLocked = 5,
     InvalidAmount = 6,
+}
+
+/// Emitted when a rider locks a fare.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FareLocked {
+    #[topic]
+    pub ride_id: String,
+    pub rider: Address,
+    pub driver: Address,
+    pub amount: i128,
+}
+
+/// Emitted when a fare is released to the driver on trip completion.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FareReleased {
+    #[topic]
+    pub ride_id: String,
+    pub rider: Address,
+    pub driver: Address,
+    pub amount: i128,
+}
+
+/// Emitted when a fare is refunded to the rider on cancellation.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FareRefunded {
+    #[topic]
+    pub ride_id: String,
+    pub rider: Address,
+    pub driver: Address,
+    pub amount: i128,
 }
 
 fn read_admin(env: &Env) -> Result<Address, Error> {
@@ -143,8 +176,13 @@ impl OruvaEscrow {
                 status: RideStatus::Locked,
             },
         );
-        env.events()
-            .publish((symbol_short!("locked"), ride_id), (rider, driver, amount));
+        FareLocked {
+            ride_id,
+            rider,
+            driver,
+            amount,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -166,10 +204,13 @@ impl OruvaEscrow {
         );
         ride.status = RideStatus::Released;
         write_ride(&env, &ride_id, &ride);
-        env.events().publish(
-            (symbol_short!("released"), ride_id),
-            (ride.rider, ride.driver, ride.amount),
-        );
+        FareReleased {
+            ride_id,
+            rider: ride.rider,
+            driver: ride.driver,
+            amount: ride.amount,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -187,10 +228,13 @@ impl OruvaEscrow {
         client.transfer(&env.current_contract_address(), &ride.rider, &ride.amount);
         ride.status = RideStatus::Refunded;
         write_ride(&env, &ride_id, &ride);
-        env.events().publish(
-            (symbol_short!("refunded"), ride_id),
-            (ride.rider, ride.driver, ride.amount),
-        );
+        FareRefunded {
+            ride_id,
+            rider: ride.rider,
+            driver: ride.driver,
+            amount: ride.amount,
+        }
+        .publish(&env);
         Ok(())
     }
 
