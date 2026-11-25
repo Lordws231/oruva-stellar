@@ -13,10 +13,11 @@ cancelled, the fare is refunded to the rider. Every step emits an on-chain
 event the Oruva platform can index.
 
 - **Fare token:** in the live design, fares move in USDC on Stellar. The
-  testnet demo uses **TUSD**, a test-issued asset that stands in for USDC
-  (see "Why TUSD, not testnet USDC" below). The escrow contract is
-  token-agnostic: swapping the fare token is a deployment configuration
-  change, not a code change.
+  first testnet demo used **TUSD**, a test-issued asset that stands in for
+  USDC. A fresh escrow instance was then deployed against real Circle
+  testnet USDC and verified end to end on 25 November 2026. The escrow
+  contract is token-agnostic: swapping the fare token is a deployment
+  configuration change, not a code change.
 - **ORVA:** the Oruva reward token, issued on Stellar testnet as
   `ORVA:GBMC7N2HJSNHLPN2NIKTTUI2ZYJ6FFRN6IVTTTRARGRA4TZ7YHL45FOD`.
   Rewards and referral bonuses are a separate flow from fare settlement and
@@ -26,7 +27,7 @@ event the Oruva platform can index.
 
 ```text
 Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver
-  (TUSD)              (holds fare)     (admin confirms
+  (fare token)        (holds fare)     (admin confirms
   ▲                                    trip completion)
   └──refund_fare── (admin confirms cancellation)
 ```
@@ -46,7 +47,9 @@ Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver
   Stellar CLI's HTTP client ignores. The proxy listens on 127.0.0.1:8765
   and forwards to `https://soroban-testnet.stellar.org/` via curl.
 - `scripts/demo.sh` — the end-to-end demo (see below).
-- `deployed-contract.txt` — the deployed escrow contract id.
+- `deployed-contract.txt` — the TUSD escrow contract id used by
+  `scripts/demo.sh`. The USDC instance id is recorded in the deployment
+  table below.
 - `.env` — **gitignored.** Holds the three testnet account secret keys.
   Never commit it, never share it.
 
@@ -62,9 +65,12 @@ Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver
 | TUSD Stellar Asset Contract | `CCV3MCX7LAZV27PHTNJ2SGLGZ3XG2VCSP7BKUG7PSX35IHYF35EJOCEJ` |
 | USDC asset (Circle testnet) | `USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` |
 | USDC Stellar Asset Contract | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` (already deployed; decimals 7, verified 24 Nov 2026) |
-| oruva-escrow contract | `CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA` |
+| oruva-escrow contract, TUSD instance | `CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA` |
+| oruva-escrow contract, USDC instance | `CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK` |
 
-Stellar Expert (testnet): https://stellar.expert/explorer/testnet/contract/CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA
+Stellar Expert (testnet), TUSD instance: https://stellar.expert/explorer/testnet/contract/CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA
+
+Stellar Expert (testnet), USDC instance: https://stellar.expert/explorer/testnet/contract/CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK
 
 ### Transactions (all confirmed successful on testnet)
 
@@ -87,11 +93,14 @@ TUSD trustlines and issue (rider holds 475 TUSD after the demo):
 - Issue 500 TUSD to rider: `19a9eb9a133f95e94e5e6e1ce50a04760eb1980725e8cdbcab5f5cef9a570614`
 - Deploy TUSD Stellar Asset Contract: `13bde3aedb06db80f5c51c630c0113f5aa6343a166c5dadec26d3f36f73a8501`
 
-USDC trustlines (ready for the Circle faucet claim, 24 November 2026):
+USDC trustlines (set 24 November 2026; Circle faucet claim landed before the
+25 November 2026 USDC demo):
 
 - Rider trustline: `ee0bea1ab45ac618d681925b1e1950378d933d3a895b046217c2b935d49c4994`
 - Driver trustline: `8e707e8c8d0d7512027a097bfd7c339801f1716c90264ab31ad02fdb6647be8b`
 - USDC SAC already deployed (decimals 7, name `USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5`); no deploy needed.
+- Rider USDC balance before the USDC demo: 20.0000000 USDC, read from the
+  USDC SAC `balance` call.
 
 Escrow deploy and init:
 
@@ -111,7 +120,36 @@ Demo, ride-002 (10 TUSD fare, cancelled and refunded):
 - Lock fare: `e72b4567de893c686fe485863f998d26b8434e56b4da2c677170525370c988b3`
 - Refund fare to rider: `1e0a0c9d7780a2c1baf830d06add4c839dd7c413bf7e7dba78c1a9736bbc2c83`
 
-Final demo balances: rider 475 TUSD, driver 25 TUSD.
+Final TUSD demo balances: rider 475 TUSD, driver 25 TUSD.
+
+### USDC demo (verified 25 November 2026)
+
+A fresh escrow instance was deployed for real Circle testnet USDC because
+`init` is one-time. The TUSD instance above stays as-is.
+
+- USDC escrow contract: `CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK`
+- Wasm hash: `5ba42f8990d1b38b8839f20a5bcce36f1d05b7b1ed8bdd5614cc13874880e097`
+  (the deploy skipped install because that wasm was already installed)
+- Deploy contract: `522ef569845e3197aa931426953cc991fcb32909ca92fcb5ef81eb9761c1a53a`
+- Init (admin = issuer, token = USDC SAC): `57618bec2fc13b60b22324ed666b8db4688288c4e00782e71f9fd7832b4cd29a`
+
+Demo, `usdc-ride-001` (12 USDC fare, completed):
+
+- Lock fare: `30abfd213855d5861254d45ae7f6fd2b18ff106c50a36307a7008b5059ad8826`
+- `get_ride` after lock: `Locked`, amount `120000000`
+- Release fare to driver: `b7daa1340a6574f32a29b054a61fc680bd90b61e979d314aa3c18a8ac9fc41b8`
+- `get_ride` after release: `Released`, amount `120000000`
+
+Demo, `usdc-ride-002` (5 USDC fare, cancelled and refunded):
+
+- Lock fare: `04f6a71550fa1c444749aa2e1f047fc9cb3d8cf07fe6cd07996b1c7911708af0`
+- `get_ride` after lock: `Locked`, amount `50000000`
+- Refund fare to rider: `dda7176fb3f191693d2058153db059cbd007a6b03968ee016a9188f13d07a1b9`
+- `get_ride` after refund: `Refunded`, amount `50000000`
+
+Final USDC balances, read from the USDC SAC `balance` call: rider
+8.0000000 USDC (`80000000`), driver 12.0000000 USDC (`120000000`), escrow
+contract 0 USDC (`0`).
 
 ## Setup
 
@@ -204,40 +242,34 @@ stellar contract asset deploy --asset "TUSD:<issuer>" \
   `env.events().all()` returns events from the last invocation only, so
   assert events before the next contract call.
 
-## Why TUSD, not testnet USDC
+## Why TUSD came first
 
-No usable official testnet USDC could be obtained from this environment:
-the Circle testnet issuer address on record is not a valid testnet issuer
-(Horizon rejects it), the USDC assets that do exist on testnet are from
-unverified issuers, and the Circle faucet is an interactive web form. TUSD
-is issued by the Oruva testnet issuer account and is clearly labelled
-everywhere as a stand-in. The escrow contract takes the fare token as a
-constructor parameter, so pointing it at real USDC later needs no code
-change.
+TUSD was the first fare token because the Circle faucet is an interactive
+web form and could not be completed from this VM during the first build.
+TUSD is issued by the Oruva testnet issuer account and is clearly labelled
+everywhere as a stand-in. After the founder claimed Circle testnet USDC to
+the rider account, the same contract was deployed as a fresh instance
+against the USDC SAC and verified with real testnet USDC. No contract code
+change was needed.
 
 ## What is next
 
-1. **Real USDC fare flow.** Get testnet USDC (Circle faucet, via the
-   founder's browser; rider + driver trustlines already set 24 Nov 2026,
-   USDC SAC confirmed at `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA`)
-   and deploy a fresh escrow instance initialized with the USDC SAC
-   (`init` is one-time, so the TUSD instance stays as-is). Same contract,
-   different token address.
-2. **Off-ramp architecture.** The hard part of the build: a driver holding
-   USDC needs naira in a bank account. The live SEP-24 NGN anchor (NGNC by
+1. **Off-ramp architecture.** The real USDC fare flow is verified above.
+   The hard part now is the driver payout edge: a driver holding USDC
+   needs naira in a bank account. The live SEP-24 NGN anchor (NGNC by
    Link.io) is effectively dormant, and global ramps (MoneyGram, $5 floor)
    do not serve Nigeria well. Options to evaluate during Build Week: a
    local anchor partnership, or an Oruva-operated off-ramp where Oruva
    buys drivers' USDC for naira via its Paystack rails.
-3. **Platform wiring.** The Oruva platform backend (Node) should call
+2. **Platform wiring.** The Oruva platform backend (Node) should call
    `lock_fare` on ride acceptance, `release_fare` on trip completion, and
    `refund_fare` on cancellation, and index the `FareLocked` /
    `FareReleased` / `FareRefunded` events for settlement records. Driver
    and rider Stellar addresses map to platform users.
-4. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
+3. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
    completed-ride rewards) from Oruva's allocation, separate from fare
    settlement.
-5. **Security review.** The contract is a demo: admin is a single key
+4. **Security review.** The contract is a demo: admin is a single key
    (the Oruva platform account). Before any mainnet use: multi-signature
    admin, time-locked refunds (auto-refund if a ride never completes),
    and an independent audit.
