@@ -8,9 +8,11 @@ Buildathon (Build Week 25-30 November 2026, submission 1 December 2026).
 ## What it is
 
 When a rider books a ride, the fare is locked in a Soroban escrow contract.
-When the trip completes, the fare is released to the driver. When the ride is
-cancelled, the fare is refunded to the rider. Every step emits an on-chain
-event the Oruva platform can index.
+When the trip completes, the fare is credited to the driver's withdrawable
+balance. The driver can withdraw to an external Stellar wallet: Oruva keeps
+exactly 10% and the driver submits and pays for the withdrawal transaction.
+When the ride is cancelled, the fare is refunded to the rider. Every step
+emits an on-chain event the Oruva platform can index.
 
 - **Fare token:** in the live design, fares move in USDC on Stellar. The
   first testnet demo used **TUSD**, a test-issued asset that stands in for
@@ -26,21 +28,34 @@ event the Oruva platform can index.
 ## Architecture
 
 ```text
-Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver
+Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver balance
   (fare token)        (holds fare)     (admin confirms
   ▲                                    trip completion)
   └──refund_fare── (admin confirms cancellation)
+
+Driver balance ──withdraw──▶ External Stellar wallet (90%)
+                         └──▶ Oruva treasury (10%)
 ```
 
 - `contracts/oruva-escrow` — the Soroban contract (Rust, soroban-sdk 29).
-  - `init(admin, token)` — one-time setup; admin is the Oruva platform.
+  - `init(admin, token, treasury)` — one-time setup; admin is the Oruva
+    platform and treasury receives the withdrawal charge.
   - `lock_fare(rider, driver, amount, ride_id)` — rider authorizes; pulls
     the fare into escrow; ride becomes `Locked`. One ride id, one escrow.
-  - `release_fare(ride_id)` — admin only; pays the driver; `Released`.
+  - `release_fare(ride_id)` — admin only; credits the driver's
+    withdrawable balance; `Released`.
+  - `withdraw(driver, destination, amount)` — driver authorizes and
+    submits; sends 90% to the destination and 10% to treasury.
   - `refund_fare(ride_id)` — admin only; refunds the rider; `Refunded`.
-  - `get_ride(ride_id)` — read-only ride state.
-  - Events: `FareLocked`, `FareReleased`, `FareRefunded` (ride id is a
-    topic, so rides are filterable).
+  - `get_ride(ride_id)` and `get_driver_balance(driver)` — read-only state.
+  - Events: `FareLocked`, `FareReleased`, `FareRefunded`,
+    `DriverWithdrawal` (ride id or driver is a topic, so records are
+    filterable).
+- `backend/` — Node service layer for default Stellar wallets, wallet
+  activation, external deposit crediting, payout preferences, conversion
+  quotes, and payout adapters. Live eNaira and bank payout still require
+  partner credentials and funded settlement accounts; the testnet build
+  exercises the same orchestration with simulated payout adapters.
 - `tools/rpc-proxy.py` — local reverse proxy for the Stellar testnet RPC.
   Needed on this VM because it has no direct internet egress: outbound
   traffic must go through the egress proxy in `HTTPS_PROXY`, which the
@@ -67,10 +82,15 @@ Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver
 | USDC Stellar Asset Contract | `CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA` (already deployed; decimals 7, verified 24 Nov 2026) |
 | oruva-escrow contract, TUSD instance | `CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA` |
 | oruva-escrow contract, USDC instance | `CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK` |
+| oruva-escrow contract, phase 2 USDC instance | `CC52W5DFFF4QM3KEOD6DRJKHCCCQ53MZDH7RQ2EZVOMUYFO25SEYDUYB` |
+| Oruva treasury (phase 2) | `GDSHAMDZPFBQR6EYFBVR3ZI7HZUSOE4G3VTQHVPVSM7XRK7WPMPXFF3J` |
+| External driver wallet (phase 2 demo) | `GCTCGJZXOOCE7XO3RHANVQFO7IGHLEBOQ35M2WUNVCCBHUUVDUXMGLR7` |
 
 Stellar Expert (testnet), TUSD instance: https://stellar.expert/explorer/testnet/contract/CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA
 
 Stellar Expert (testnet), USDC instance: https://stellar.expert/explorer/testnet/contract/CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK
+
+Stellar Expert (testnet), phase 2 instance: https://stellar.expert/explorer/testnet/contract/CC52W5DFFF4QM3KEOD6DRJKHCCCQ53MZDH7RQ2EZVOMUYFO25SEYDUYB
 
 ### Transactions (all confirmed successful on testnet)
 
@@ -151,6 +171,34 @@ Final USDC balances, read from the USDC SAC `balance` call: rider
 8.0000000 USDC (`80000000`), driver 12.0000000 USDC (`120000000`), escrow
 contract 0 USDC (`0`).
 
+### Phase 2 withdrawal demo (verified 26 November 2026)
+
+A fresh phase 2 instance adds driver balances and external withdrawals.
+The driver submits the withdrawal transaction, so the driver pays its
+Stellar fee.
+
+- Phase 2 contract: `CC52W5DFFF4QM3KEOD6DRJKHCCCQ53MZDH7RQ2EZVOMUYFO25SEYDUYB`
+- Wasm hash: `a8cd8f9618ed1996bd17ac985662c4328ccda24e6801189e901b254364c0441e`
+- Deploy contract: `eaf272305b6d1a72b2cc47465d3f6c11f597a1e17b12a725fc7455813e314c49`
+- Init (admin = issuer, token = USDC SAC, treasury = Oruva treasury):
+  `bad54b03e3d97f916961ce04b8463485e9746a51026318d8b841ec7a1bb1c21a`
+- Lock 5 USDC for `phase2-ride-001`:
+  `6bdd51635fe6d01bb57af1ae289fb54b222d6134e65f10a5af3a169caaeef5cc`
+- Release into driver balance:
+  `9b134dba8f07ff30ebe960091dfe2d054b4de25ab4501a55e40857e0c5cf94da`
+- `get_driver_balance` after release: `50000000`
+- Driver withdraws 5 USDC to the external wallet:
+  `b83109f267775d781d5e4ac5bd0502b28102fe59c05a56cced3bea5637f401fe`
+- `get_driver_balance` after withdrawal: `0`
+- Final balances: rider 3.0000000 USDC, treasury 0.5000000 USDC, external
+  wallet 4.5000000 USDC.
+
+Backend wallet verification on the same day: the backend provisioned and
+activated a default driver wallet (`GA4A4NUDF65SQ37S2IAESNFVP4LBZNGE2NSJ6YXJ35NEB4HFOOSJEJCZ`),
+an external 1 XLM payment landed in transaction
+`9fccca445a76164d86bbae62be76a206f1496892689353c31d85282c20cf78dc`, and
+the Horizon sync credited it once.
+
 ## Setup
 
 Prerequisites: Rust (1.84+; tested with 1.100.0), the Stellar CLI
@@ -199,11 +247,24 @@ script (and fund the rider with more TUSD if needed) to run it again.
 cargo test -p oruva-escrow
 ```
 
-9 tests, all passing (24 November 2026): lock moves funds and records the
-ride (including the `FareLocked` event), release pays the driver, refund
-returns the fare, double-lock rejected, release-after-refund rejected,
-unknown ride rejected, zero amount rejected, double init rejected, unknown
-ride reads as None.
+13 contract tests, all passing (26 November 2026): lock moves funds and
+records the ride (including the `FareLocked` event), release credits the
+driver balance, withdrawal sends 90% to the external wallet and 10% to
+treasury, partial withdrawal keeps the remaining balance, over-balance and
+zero withdrawals are rejected, refund returns the fare, double-lock
+rejected, release-after-refund rejected, unknown ride rejected, zero lock
+rejected, double init rejected, unknown ride reads as None.
+
+Backend tests:
+
+```sh
+cd backend && npm test
+```
+
+8 backend tests, all passing (26 November 2026): default rider and driver
+wallet provisioning, wallet activation, external deposit crediting,
+omnibus memo crediting, the 10% withdrawal split, external Stellar payout,
+and opt-in eNaira and bank payout orchestration with simulated adapters.
 
 ## Build and deploy
 
@@ -212,7 +273,8 @@ stellar contract build
 stellar contract deploy --wasm target/wasm32v1-none/release/oruva_escrow.wasm \
   --source-account issuer --alias oruva-escrow
 stellar contract invoke --id oruva-escrow --source-account issuer -- \
-  init --admin <issuer-address> --token <fare-token-contract-address>
+  init --admin <issuer-address> --token <fare-token-contract-address> \
+  --treasury <treasury-address>
 ```
 
 The fare token's Stellar Asset Contract must be deployed first, or the
@@ -254,18 +316,20 @@ change was needed.
 
 ## What is next
 
-1. **Off-ramp architecture.** The real USDC fare flow is verified above.
-   The hard part now is the driver payout edge: a driver holding USDC
-   needs naira in a bank account. The live SEP-24 NGN anchor (NGNC by
-   Link.io) is effectively dormant, and global ramps (MoneyGram, $5 floor)
-   do not serve Nigeria well. Options to evaluate during Build Week: a
-   local anchor partnership, or an Oruva-operated off-ramp where Oruva
-   buys drivers' USDC for naira via its Paystack rails.
-2. **Platform wiring.** The Oruva platform backend (Node) should call
-   `lock_fare` on ride acceptance, `release_fare` on trip completion, and
-   `refund_fare` on cancellation, and index the `FareLocked` /
-   `FareReleased` / `FareRefunded` events for settlement records. Driver
-   and rider Stellar addresses map to platform users.
+1. **Live payout partners.** The backend conversion and payout
+   orchestration is built and tested, but live eNaira and Nigerian bank
+   payout still need partner credentials, funded settlement accounts, and
+   licensing checks. The live SEP-24 NGN anchor (NGNC by Link.io) is
+   effectively dormant, Seevcash's Nigeria anchor is still in progress,
+   and neither MoraPay nor Flutterwave is a Stellar-native off-ramp today.
+   The production choice is a confirmed local anchor or payout partner,
+   with the simulated adapters replaced by that partner's live adapter.
+2. **Platform wiring.** The backend service layer in `backend/` provisions
+   default wallets, credits external deposits, stores payout preferences,
+   and orchestrates withdrawals and conversions. The production Oruva
+   platform still needs to call `lock_fare` on ride acceptance,
+   `release_fare` on trip completion, and `refund_fare` on cancellation,
+   and index the contract events for settlement records.
 3. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
    completed-ride rewards) from Oruva's allocation, separate from fare
    settlement.

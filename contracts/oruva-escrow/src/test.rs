@@ -18,6 +18,8 @@ struct Fixture<'a> {
     admin: Address,
     rider: Address,
     driver: Address,
+    treasury: Address,
+    external_wallet: Address,
 }
 
 fn setup(env: &Env) -> Fixture<'_> {
@@ -25,6 +27,8 @@ fn setup(env: &Env) -> Fixture<'_> {
     let admin = Address::generate(env);
     let rider = Address::generate(env);
     let driver = Address::generate(env);
+    let treasury = Address::generate(env);
+    let external_wallet = Address::generate(env);
 
     // Test fare token (Stellar Asset Contract) with the rider funded.
     let sac = env.register_stellar_asset_contract_v2(admin.clone());
@@ -35,7 +39,7 @@ fn setup(env: &Env) -> Fixture<'_> {
 
     let contract_id = env.register(OruvaEscrow, ());
     let client = OruvaEscrowClient::new(env, &contract_id);
-    client.init(&admin, &token_address);
+    client.init(&admin, &token_address, &treasury);
 
     Fixture {
         client,
@@ -45,6 +49,8 @@ fn setup(env: &Env) -> Fixture<'_> {
         admin,
         rider,
         driver,
+        treasury,
+        external_wallet,
     }
 }
 
@@ -90,7 +96,7 @@ fn lock_moves_funds_and_records_ride() {
 }
 
 #[test]
-fn release_pays_driver() {
+fn release_credits_driver_balance() {
     let env = Env::default();
     let f = setup(&env);
     let id = ride_id(&env, "ride-001");
@@ -98,12 +104,68 @@ fn release_pays_driver() {
     f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
     f.client.release_fare(&id);
 
-    assert_eq!(f.token.balance(&f.driver), FARE);
-    assert_eq!(f.token.balance(&f.contract_id), 0);
+    assert_eq!(f.token.balance(&f.driver), 0);
+    assert_eq!(f.token.balance(&f.contract_id), FARE);
+    assert_eq!(f.client.get_driver_balance(&f.driver), FARE);
     assert_eq!(
         f.client.get_ride(&id).unwrap().status,
         RideStatus::Released
     );
+}
+
+#[test]
+fn withdraw_sends_ninety_percent_and_keeps_ten_percent() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.release_fare(&id);
+    f.client.withdraw(&f.driver, &f.external_wallet, &FARE);
+
+    assert_eq!(f.token.balance(&f.external_wallet), 22_500_0000);
+    assert_eq!(f.token.balance(&f.treasury), 2_500_0000);
+    assert_eq!(f.token.balance(&f.contract_id), 0);
+    assert_eq!(f.client.get_driver_balance(&f.driver), 0);
+}
+
+#[test]
+fn partial_withdraw_keeps_remaining_balance() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+    let withdrawal = 10 * ONE_TUSD;
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.release_fare(&id);
+    f.client.withdraw(&f.driver, &f.external_wallet, &withdrawal);
+
+    assert_eq!(f.token.balance(&f.external_wallet), 9 * ONE_TUSD);
+    assert_eq!(f.token.balance(&f.treasury), ONE_TUSD);
+    assert_eq!(f.token.balance(&f.contract_id), FARE - withdrawal);
+    assert_eq!(f.client.get_driver_balance(&f.driver), FARE - withdrawal);
+}
+
+#[test]
+fn withdraw_more_than_balance_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.release_fare(&id);
+    let res = f
+        .client
+        .try_withdraw(&f.driver, &f.external_wallet, &(FARE + 1));
+    assert_eq!(res, Err(Ok(Error::InsufficientBalance)));
+}
+
+#[test]
+fn withdraw_zero_amount_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let res = f.client.try_withdraw(&f.driver, &f.external_wallet, &0);
+    assert_eq!(res, Err(Ok(Error::InvalidAmount)));
 }
 
 #[test]
@@ -170,7 +232,7 @@ fn lock_zero_amount_fails() {
 fn double_init_fails() {
     let env = Env::default();
     let f = setup(&env);
-    let res = f.client.try_init(&f.admin, &f.token_address);
+    let res = f.client.try_init(&f.admin, &f.token_address, &f.treasury);
     assert_eq!(res, Err(Ok(Error::AlreadyInitialized)));
 }
 

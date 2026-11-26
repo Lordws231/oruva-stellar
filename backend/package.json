@@ -1,0 +1,1 @@
+{"dependencies":{"@stellar/stellar-sdk":"^13.3.0"},"description":"Oruva Stellar wallet, deposit, withdrawal, conversion and payout service layer for the Buildathon testnet build.","name":"oruva-stellar-backend","private":true,"scripts":{"test":"node --test"},"type":"module","version":"0.1.0"}
