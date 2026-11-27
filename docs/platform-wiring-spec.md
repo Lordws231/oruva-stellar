@@ -339,6 +339,21 @@ but pair availability is never assumed:
   as a stablecoin backup; neither replaces NEAR Intents for Litecoin
   and XRP breadth.
 
+Roadmap concept (not Dec 1 scope): a Stellar-native intents layer is
+possible, but it would not be a literal NEAR Intents/1Click replica,
+because NEAR Intents settles through the intents.near verifier on NEAR
+and 1Click is NEAR's hosted API. The Stellar version would use a
+Soroban intent escrow/verifier contract, user-signed intents (Soroban
+authorization entries or SEP-53 message signing), an off-chain solver
+auction, and settlement through Stellar DEX/path payments for Stellar
+assets, CCTP for native USDC, NEAR 1Click as an external solver route
+for Litecoin/XRP/other chains, and Flutterwave/anchors for NGN payout.
+The contract must enforce minimum output, deadline, single-use intent
+hash, refund after deadline, and event evidence. MVP scope if ordered:
+Oruva as first solver for fare conversion intents, then open solver
+competition later. This does not displace the Dec 1 dual-confirmation
+and platform wiring work.
+
 ### Fallbacks
 
 - If CCTP forwarding is unavailable for the Stellar to Polygon route:
