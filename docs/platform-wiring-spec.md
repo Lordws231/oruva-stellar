@@ -317,10 +317,33 @@ States: `quoted`, `burned`, `attesting`, `minted`, `credited`,
 Single-use payout IDs, status checks before any resubmission, no blind
 retries. A resume always starts from the recorded state and hashes.
 
+### General cross-chain conversion layer
+
+Circle CCTP stays the preferred native USDC path for Stellar to
+Polygon to Flutterwave NGN payout. For broader conversions, NEAR
+Intents via 1Click is Oruva's general cross-chain conversion layer for
+routes involving Litecoin, XRP Ledger and Stellar (for example Stellar
+USDC to LTC, LTC to USDC, XRP to Stellar USDC, Stellar USDC to XRP).
+NEAR Intents documentation lists BTC-family tokens including LTC,
+Stellar XLM plus issued assets, and XRP among supported Layer 1 assets,
+but pair availability is never assumed:
+
+- Show a conversion route only when 1Click returns a live quote for
+  that exact asset/chain pair and amount (tokens/quote endpoints).
+- Record quote ID, deposit address, source transaction, solver delivery
+  transaction, fees, slippage or minimum-out, and the refund path.
+- Treat XRPL stablecoins carefully: XRPL supports XRP native plus
+  trustline stablecoins such as RLUSD/USDC where available; do not
+  present USDT as native on XRPL.
+- ROZO may be evaluated as a Stellar-focused intent route and Allbridge
+  as a stablecoin backup; neither replaces NEAR Intents for Litecoin
+  and XRP breadth.
+
 ### Fallbacks
 
-- If CCTP forwarding is unavailable for the route: ROZO or NEAR Intents
-  intent routing from Stellar to Polygon.
+- If CCTP forwarding is unavailable for the Stellar to Polygon route:
+  NEAR Intents routing, with ROZO evaluated as a Stellar-focused
+  alternative.
 - Oruva inventory conversion (treasury receives Stellar USDC and
   releases Polygon USDC from its own float) is an emergency fallback only,
   not the primary design. It adds custody, liquidity, and compliance
