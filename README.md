@@ -19,8 +19,9 @@ on-chain event the Oruva platform can index.
 
 Payment rails: Paystack is the default fiat rail, Stellar is the crypto
 settlement rail, and Flutterwave is only the crypto conversion end
-(Stellar USDC to Circle CCTP to Base USDC to Flutterwave stablecoin
-wallet to NGN conversion). Each user has one visible Oruva account
+(Stellar USDC to Circle CCTP to Polygon USDC to Flutterwave stablecoin
+wallet to NGN offramp at Flutterwave's 1.5% offramping fee; Oruva's
+displayed rate is the Flutterwave rate reduced by 15%). Each user has one visible Oruva account
 number: their Paystack Dedicated Virtual Account. Converted NGN is sent
 by Flutterwave as a bank transfer into that Paystack DVA, and the user
 withdraws manually from the Oruva/Paystack balance to their personal
@@ -56,7 +57,7 @@ Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver b
 
 Driver balance ──withdraw──▶ External Stellar wallet (90%)
                          └──▶ Oruva treasury (10%)
-Driver balance ──CCTP bridge──▶ Base USDC ──▶ Flutterwave wallet
+Driver balance ──CCTP bridge──▶ Polygon USDC ──▶ Flutterwave wallet
                              ──▶ NGN conversion ──▶ transfer into
                              the user's Paystack DVA (one visible
                              account number; live leg pending
@@ -382,8 +383,8 @@ change was needed.
 ## What is next
 
 1. **Live payout partners.** The conversion bridge is Circle CCTP:
-   Stellar USDC to Base USDC to Flutterwave stablecoin wallet to NGN
-   conversion, then a Flutterwave bank transfer into the user's Paystack
+   Stellar USDC to Polygon USDC to Flutterwave stablecoin wallet to NGN
+   offramp, then a Flutterwave bank transfer into the user's Paystack
    DVA (the one visible Oruva account number), with manual withdrawal
    from there. The CCTP leg is proven on testnet (see
    `docs/dual-confirmation-evidence.md`). Live Flutterwave NGN payout

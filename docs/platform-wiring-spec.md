@@ -16,7 +16,7 @@ Three rails, one internal ledger:
 - **Stellar is the crypto settlement rail.** USDC escrow lock, release,
   and refund, and driver crypto balances.
 - **Flutterwave is only the crypto conversion end.** Stellar USDC to
-  Circle CCTP to Base USDC to Flutterwave stablecoin wallet to NGN
+  Circle CCTP to Polygon USDC to Flutterwave stablecoin wallet to NGN
   conversion. Flutterwave then sends an NGN bank transfer into the
   user's Paystack Dedicated Virtual Account (DVA). The user withdraws
   manually from the Oruva/Paystack balance to their personal bank
@@ -59,7 +59,7 @@ Rules:
   conversion, a refund is handled as an NGN payout reversal or
   adjustment with a full audit trail.
 - Source tagging and reconciliation keep the full chain per payout:
-  ride ID, Stellar burn hash, CCTP/Base mint hash, Flutterwave
+  ride ID, Stellar burn hash, CCTP mint hash, Flutterwave
   conversion reference, Flutterwave transfer reference, Paystack DVA
   credit reference, then the manual withdrawal reference.
 
@@ -176,10 +176,15 @@ For every escrow action, log and keep:
 ## 3. CCTP bridge adapter (Stellar USDC to Flutterwave NGN)
 
 The bridge converts a driver's Stellar USDC into NGN in the driver's
-Paystack DVA balance. Route: Stellar USDC, Circle CCTP burn, Base USDC
-mint into Oruva's Flutterwave stablecoin wallet, NGN conversion,
+Paystack DVA balance. Route: Stellar USDC, Circle CCTP burn, Polygon
+USDC mint into Oruva's Flutterwave stablecoin wallet, NGN offramp,
 Flutterwave bank transfer into the user's Paystack DVA account number.
-Destination domain: Base = 6. Source domain: Stellar = 27.
+Destination domain: Polygon = 7. Source domain: Stellar = 27.
+Flutterwave lists inbound stablecoin networks as Polygon and Ethereum,
+while outbound includes Polygon, Ethereum, Solana and Base, so Polygon
+is the preferred CCTP destination for minting into a Flutterwave
+wallet. Base (domain 6) is an alternative only if Flutterwave confirms
+Base inbound funding for Oruva's account.
 
 ### Adapter boundary
 
@@ -193,7 +198,7 @@ adapter owns:
 - The payout record (section 4) and the state machine (below).
 
 Nothing outside the adapter talks to Circle or Flutterwave directly.
-The mint recipient is Oruva's Flutterwave Base USDC wallet address, a
+The mint recipient is Oruva's Flutterwave Polygon USDC wallet address, a
 configuration value confirmed from the Flutterwave dashboard. It is not
 confirmed yet; never hardcode or invent an address.
 
@@ -209,8 +214,9 @@ authorization covers both steps in a single invocation:
    TokenMessengerMinter with:
    - `amount`: burn amount in Stellar 7-decimal units (CCTP takes the
      first 6 decimals; keep amounts at 6-decimal precision).
-   - `destination_domain`: 6 (Base).
-   - `mint_recipient`: the Flutterwave Base USDC wallet address,
+   - `destination_domain`: 7 (Polygon; 6 for Base only if Flutterwave
+     confirms Base inbound funding).
+   - `mint_recipient`: the Flutterwave Polygon USDC wallet address,
      left-padded to 32 bytes.
    - `burn_token`: the USDC Stellar Asset Contract.
    - `destination_caller`: 32 zero bytes (the Forwarding Service does
@@ -220,7 +226,8 @@ authorization covers both steps in a single invocation:
    - `min_finality_threshold`: 2000.
    - `hook_data`: the 32-byte version 0 forwarding hook,
      `0x636374702d666f72776172640000000000000000000000000000000000000000`,
-     so Circle submits the Base mint and no Base gas wallet is needed.
+     so Circle submits the Polygon mint and no Polygon gas wallet is
+     needed.
 
 The testnet proof in `docs/dual-confirmation-evidence.md` used the
 two-transaction equivalent (separate approve, then burn). The wrapper
@@ -246,13 +253,21 @@ second account number is shown in the app).
   amount, gross NGN, Flutterwave conversion fee and final NGN credit.
   For Automatic Convert, use the same calculation at conversion time
   and record the quote, rate and fee in the payout trail.
-- Do not hardcode the Flutterwave fee percentage unless Flutterwave
-  confirms it for stablecoin-to-NGN conversion; use the live quote or
-  fee returned for the conversion.
+- Flutterwave lists stablecoin offramping (RLUSD/USDT/USDC to NGN/USD)
+  at 1.5%, onramping at 1.5%, inbound external-wallet funding at $1.5,
+  outbound external-wallet payout at $1.5, Flutterwave-to-Flutterwave
+  stablecoin transfers free, with network gas fees added by the
+  selected network. For Oruva's USDC to NGN conversion, use the 1.5%
+  offramping fee as the crypto conversion fee in the formula, while
+  still recording the live quote and fee returned at conversion time.
+  Confirm in implementation whether Flutterwave calculates the 1.5% on
+  the Flutterwave gross conversion value or on the amount presented by
+  Oruva; do not silently choose if the API quote differs.
 
 ### Fee quote and attestation
 
-- Quote: `GET /v2/burn/USDC/fees/27/6?forward=true`. Use the
+- Quote: `GET /v2/burn/USDC/fees/27/7?forward=true` for Polygon
+  (27/6 only on the confirmed Base alternative). Use the
   `finalityThreshold` 2000 entry. `minimumFee` is the protocol fee in
   basis points; `forwardFee` is in 6-decimal USDC units. Set `max_fee`
   to protocol fee plus `forwardFee` converted to Stellar 7-decimal
@@ -262,7 +277,7 @@ second account number is shown in the app).
   until status complete, then keep polling until `forwardState` is
   CONFIRMED and `forwardTxHash` is present. Record both.
 - After the forward confirms, verify the Flutterwave credit by API or
-  status lookup against the Base mint hash and wallet address before
+  status lookup against the Polygon mint hash and wallet address before
   converting. Convert USDC to NGN, then Flutterwave sends an NGN bank
   transfer into the user's Paystack DVA account number. Verify the DVA
   credit before marking the payout complete. The user withdraws
@@ -285,7 +300,7 @@ States: `quoted`, `burned`, `attesting`, `minted`, `credited`,
   `pending_bridge`. Never re-burn after a successful burn.
 - `attesting`: attestation or forward still pending. Resume polling;
   do not resubmit anything.
-- `minted`: Base mint confirmed (`forwardTxHash` recorded).
+- `minted`: Polygon mint confirmed (`forwardTxHash` recorded).
 - `credited`: Flutterwave stablecoin wallet credit verified.
 - `converted`: NGN conversion confirmed; move the amount to
   `pending_payout` when the transfer into the user's Paystack DVA is
@@ -297,7 +312,7 @@ States: `quoted`, `burned`, `attesting`, `minted`, `credited`,
 - `failed-reconcile`: any step failed or is ambiguous. Freeze the
   payout, reconcile by burn hash, mint hash, and Flutterwave references,
   and only then decide. If the Flutterwave credit is not seen, do not
-  re-burn; reconcile by Base mint hash and wallet address first.
+  re-burn; reconcile by Polygon mint hash and wallet address first.
 
 Single-use payout IDs, status checks before any resubmission, no blind
 retries. A resume always starts from the recorded state and hashes.
@@ -305,9 +320,9 @@ retries. A resume always starts from the recorded state and hashes.
 ### Fallbacks
 
 - If CCTP forwarding is unavailable for the route: ROZO or NEAR Intents
-  intent routing from Stellar to Base.
+  intent routing from Stellar to Polygon.
 - Oruva inventory conversion (treasury receives Stellar USDC and
-  releases Base USDC from its own float) is an emergency fallback only,
+  releases Polygon USDC from its own float) is an emergency fallback only,
   not the primary design. It adds custody, liquidity, and compliance
   burden.
 
@@ -324,7 +339,7 @@ progress. Do not claim live NGN payout anywhere.
 Every payout has one idempotent payout ID linking:
 
 - Ride ID and source rail (Paystack, Stellar, or Flutterwave-converted).
-- Transaction hashes and references: Stellar burn hash, Base
+- Transaction hashes and references: Stellar burn hash, Polygon
   mint/forward hash, Flutterwave credit reference, Flutterwave
   conversion reference, Flutterwave transfer reference, Paystack DVA
   credit reference, then the manual withdrawal reference (and Paystack
