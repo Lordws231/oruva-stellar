@@ -32,10 +32,26 @@ and driver payout intents are Oruva's first vertical, not the limit.
   1Click as an external route that is shown only with a live quote
   for the exact pair and amount, and a Flutterwave and anchor NGN
   route that stays unavailable in quotes until its gates clear.
+- CCTP bridge adapter `backend/src/cctpBridge.js`: fee quote shape
+  for Stellar domain 27 to Polygon domain 7, burn submission state,
+  attestation polling state, mint completion state, idempotent payout
+  IDs, and reconciliation records linking ride ID, burn hash, mint
+  hash, conversion reference and final credit reference. Transport is
+  injected; tests use simulated responses and submit no live burn.
+- NEAR Intents 1Click client `backend/src/nearOneClick.js`: injected
+  transport, live-quote guardrail, quote recording with deposit
+  address, source transaction, solver delivery transaction, fees,
+  slippage or minimum-out and refund path. XRPL asset care is
+  enforced: XRP native and trustline stablecoins only, never USDT as
+  native on XRPL.
+- Webhook delivery queue `backend/src/webhooks.js`: HMAC signed
+  payloads from an injected secret provider, retry with backoff
+  state, and delivery status tracking. Tests run offline.
 - Public API contracts: quote, submit, status and refund handlers
   behind API keys with rate limits and idempotency keys. A TypeScript
-  SDK, developer dashboard, webhooks delivery service and testnet
-  sandbox keys are the next platform phase.
+  SDK skeleton lives in `sdk/typescript` with API key headers,
+  idempotency key generation and typed errors. Developer dashboard
+  and testnet sandbox keys remain the next platform phase.
 
 ## Intent kinds
 
@@ -107,13 +123,16 @@ On-chain reads confirm intent-001 status Settled and intent-002
 status Refunded. Demo script: scripts/intents-demo.sh.
 
 Tests: contract host tests 14 passed. Backend tests 16 passed
-(8 existing plus 8 intents tests).
+(8 existing plus 8 intents tests) at the MVP commit. The bridge,
+1Click, webhook and SDK additions are covered by their own offline
+tests in `backend/test` and `sdk/typescript/test`.
 
 ## Remaining gaps
 
 Platform wiring into the Oruva platform (EscrowAdapter calls,
 event indexing, judge evidence fields) follows after build 0405.
-The TypeScript SDK, developer dashboard, webhook delivery, solver
-bond escrow and slashing, production cross-chain delivery proof
-verification, and live fiat payout remain later phases behind their
-gates.
+The developer dashboard, solver bond escrow and slashing, production
+cross-chain delivery proof verification, and live fiat payout remain
+later phases behind their gates. Paystack DVA receiving confirmation
+and Flutterwave stablecoin approval are explicit blockers outside
+this Stellar-repo scope.

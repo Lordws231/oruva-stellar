@@ -407,4 +407,10 @@ with an audit trail.
 
 The simulated Flutterwave conversion adapter in `backend/` stays the
 test double until the live gates in section 3 clear; the wiring build
-replaces it behind the same `BridgeAdapter` boundary.
+replaces it behind the same `BridgeAdapter` boundary. The Stellar
+repo now carries the offline bridge state machine in
+`backend/src/cctpBridge.js` and the 1Click quote client in
+`backend/src/nearOneClick.js`; both use injected transports in tests
+and submit no live burn or live 1Click call. Platform wiring still
+waits for build 0405, and Paystack DVA receiving plus Flutterwave
+stablecoin approval remain blockers for live NGN payout.

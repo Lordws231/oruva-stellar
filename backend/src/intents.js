@@ -114,16 +114,18 @@ export class CctpRouteAdapter {
 }
 
 export class NearOneClickRouteAdapter {
-  constructor({ liveQuoteProvider = null } = {}) {
+  constructor({ liveQuoteProvider = null, client = null } = {}) {
     this.name = 'near_intents_1click';
     this.liveQuoteProvider = liveQuoteProvider;
+    this.client = client;
   }
 
   async quote(request) {
     // Guardrail: no live 1Click quote for the exact pair and amount,
     // no route is shown.
-    if (!this.liveQuoteProvider) return null;
-    const live = await this.liveQuoteProvider.quote(request);
+    const provider = this.client ?? this.liveQuoteProvider;
+    if (!provider) return null;
+    const live = await provider.quote(request);
     if (!live || !live.quoteId || !live.depositAddress) return null;
     return {
       route: this.name,
@@ -135,6 +137,13 @@ export class NearOneClickRouteAdapter {
         type: 'near_1click_live_quote',
         quoteId: live.quoteId,
         depositAddress: live.depositAddress,
+        sourceTx: live.sourceTx ?? null,
+        solverDeliveryTx: live.solverDeliveryTx ?? null,
+        fees: {
+          feeAmount: Number(live.feeAmount ?? 0),
+          spreadBps: Number(live.spreadBps ?? 0),
+          slippageBps: live.slippageBps ?? null,
+        },
         minimumOut: live.minimumOut ?? null,
         refundPath: live.refundPath ?? null,
       },
