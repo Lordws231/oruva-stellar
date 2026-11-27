@@ -226,6 +226,30 @@ The testnet proof in `docs/dual-confirmation-evidence.md` used the
 two-transaction equivalent (separate approve, then burn). The wrapper
 contract is part of the wiring build; the burn parameters are identical.
 
+### Conversion trigger, rate and credit
+
+Drivers and users choose either Automatic Convert or manually tap
+Convert for USDC. When conversion runs, Flutterwave converts USDC to
+NGN and automatically initiates the NGN payment into the user's
+Oruva sub-account side (the single Paystack DVA destination above; no
+second account number is shown in the app).
+
+- Oruva displayed conversion rate = Flutterwave USDC/NGN rate reduced
+  by 15%. Formula: `displayed_rate = flutterwave_rate * 0.85`.
+- Credit formula:
+  `ngn_credit = usdc_amount * displayed_rate - flutterwave_crypto_conversion_fee`.
+- Worked example: if the Flutterwave rate is 1,400 NGN per 1 USDC,
+  the displayed rate is 1,190 NGN/USDC. For 200 USDC, gross is
+  238,000 NGN, then subtract the Flutterwave crypto conversion fee
+  quoted at conversion time.
+- Before a manual conversion, show the user the displayed rate, USDC
+  amount, gross NGN, Flutterwave conversion fee and final NGN credit.
+  For Automatic Convert, use the same calculation at conversion time
+  and record the quote, rate and fee in the payout trail.
+- Do not hardcode the Flutterwave fee percentage unless Flutterwave
+  confirms it for stablecoin-to-NGN conversion; use the live quote or
+  fee returned for the conversion.
+
 ### Fee quote and attestation
 
 - Quote: `GET /v2/burn/USDC/fees/27/6?forward=true`. Use the
@@ -251,8 +275,12 @@ contract is part of the wiring build; the burn parameters are identical.
 States: `quoted`, `burned`, `attesting`, `minted`, `credited`,
 `converted`, `paid`, `failed-reconcile`.
 
-- `quoted`: payout created, fee and FX quote stored with expiry. The
-  amount sits in `stellar_usdc_available` until the burn.
+- `quoted`: payout created, CCTP fee quote and conversion quote stored
+  with expiry (Flutterwave rate, displayed rate at 85%, gross NGN,
+  Flutterwave conversion fee and final NGN credit). The amount sits in
+  `stellar_usdc_available` until the burn. Automatic Convert creates
+  this quote at conversion time; manual Convert shows it to the user
+  before they confirm.
 - `burned`: Stellar burn transaction confirmed. Move the amount to
   `pending_bridge`. Never re-burn after a successful burn.
 - `attesting`: attestation or forward still pending. Resume polling;
