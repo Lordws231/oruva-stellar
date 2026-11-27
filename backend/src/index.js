@@ -10,3 +10,15 @@ export {
   HorizonPathRateProvider,
   HorizonPaymentsClient,
 } from './stellarAdapters.js';
+export {
+  ApiKeyRateLimiter,
+  CctpRouteAdapter,
+  FlutterwaveAnchorRouteAdapter,
+  INTENT_KINDS,
+  IntentService,
+  NearOneClickRouteAdapter,
+  StellarDexRouteAdapter,
+  createIntentApiHandlers,
+  selectBestBid,
+  webhookEvent,
+} from './intents.js';
