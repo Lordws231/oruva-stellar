@@ -4,7 +4,9 @@
 # Deploys a fresh escrow instance with driver balances and withdrawals, then
 # verifies:
 #   1. rider locks a 5 USDC fare
-#   2. admin releases it into the driver's withdrawable balance
+#   2. driver confirms arrival and passenger authorizes, then the fare
+#      is released into the driver's withdrawable balance (dual
+#      confirmation)
 #   3. driver withdraws 5 USDC to an external wallet
 #   4. Oruva treasury receives 0.5 USDC and the external wallet receives
 #      4.5 USDC; the driver submits the withdrawal transaction and pays its
@@ -70,7 +72,12 @@ echo "== lock fare =="
 stellar contract invoke --id "$CONTRACT_ID" --source-account rider -- \
   lock_fare --rider "$RIDER" --driver "$DRIVER" --amount "$FARE" --ride-id "$RIDE_ID"
 
-echo "== release to driver balance =="
+echo "== dual confirmation, then release to driver balance =="
+stellar contract invoke --id "$CONTRACT_ID" --source-account driver -- \
+  confirm_arrival --driver "$DRIVER" --ride-id "$RIDE_ID" \
+  --proof-ref "proof:phase2-arrival-001"
+stellar contract invoke --id "$CONTRACT_ID" --source-account rider -- \
+  authorize_release --rider "$RIDER" --ride-id "$RIDE_ID"
 stellar contract invoke --id "$CONTRACT_ID" --source-account issuer -- \
   release_fare --ride-id "$RIDE_ID"
 

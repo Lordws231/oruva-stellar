@@ -58,6 +58,17 @@ fn ride_id(env: &Env, id: &str) -> String {
     String::from_str(env, id)
 }
 
+fn proof_ref(env: &Env) -> String {
+    String::from_str(env, "proof:arrival-001")
+}
+
+/// Run both release confirmations for a locked ride: the driver records
+/// the arrival proof and the passenger authorizes the release.
+fn dual_confirm(env: &Env, f: &Fixture, id: &String) {
+    f.client.confirm_arrival(&f.driver, id, &proof_ref(env));
+    f.client.authorize_release(&f.rider, id);
+}
+
 #[test]
 fn lock_moves_funds_and_records_ride() {
     let env = Env::default();
@@ -91,6 +102,8 @@ fn lock_moves_funds_and_records_ride() {
             driver: f.driver.clone(),
             amount: FARE,
             status: RideStatus::Locked,
+            arrival_proof: None,
+            passenger_authorized: false,
         })
     );
 }
@@ -102,6 +115,7 @@ fn release_credits_driver_balance() {
     let id = ride_id(&env, "ride-001");
 
     f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    dual_confirm(&env, &f, &id);
     f.client.release_fare(&id);
 
     assert_eq!(f.token.balance(&f.driver), 0);
@@ -120,6 +134,7 @@ fn withdraw_sends_ninety_percent_and_keeps_ten_percent() {
     let id = ride_id(&env, "ride-001");
 
     f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    dual_confirm(&env, &f, &id);
     f.client.release_fare(&id);
     f.client.withdraw(&f.driver, &f.external_wallet, &FARE);
 
@@ -137,6 +152,7 @@ fn partial_withdraw_keeps_remaining_balance() {
     let withdrawal = 10 * ONE_TUSD;
 
     f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    dual_confirm(&env, &f, &id);
     f.client.release_fare(&id);
     f.client.withdraw(&f.driver, &f.external_wallet, &withdrawal);
 
@@ -153,6 +169,7 @@ fn withdraw_more_than_balance_fails() {
     let id = ride_id(&env, "ride-001");
 
     f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    dual_confirm(&env, &f, &id);
     f.client.release_fare(&id);
     let res = f
         .client
@@ -241,4 +258,149 @@ fn get_ride_unknown_returns_none() {
     let env = Env::default();
     let f = setup(&env);
     assert_eq!(f.client.get_ride(&ride_id(&env, "no-such-ride")), None);
+}
+
+#[test]
+fn release_with_only_driver_proof_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.confirm_arrival(&f.driver, &id, &proof_ref(&env));
+    let res = f.client.try_release_fare(&id);
+    assert_eq!(res, Err(Ok(Error::PassengerAuthorizationMissing)));
+    assert_eq!(f.client.get_driver_balance(&f.driver), 0);
+    assert_eq!(f.client.get_ride(&id).unwrap().status, RideStatus::Locked);
+}
+
+#[test]
+fn release_with_only_passenger_authorization_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.authorize_release(&f.rider, &id);
+    let res = f.client.try_release_fare(&id);
+    assert_eq!(res, Err(Ok(Error::ArrivalProofMissing)));
+    assert_eq!(f.client.get_driver_balance(&f.driver), 0);
+    assert_eq!(f.client.get_ride(&id).unwrap().status, RideStatus::Locked);
+}
+
+#[test]
+fn release_with_no_confirmations_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    let res = f.client.try_release_fare(&id);
+    assert_eq!(res, Err(Ok(Error::ArrivalProofMissing)));
+}
+
+#[test]
+fn dual_confirmation_records_proof_and_authorization() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.confirm_arrival(&f.driver, &id, &proof_ref(&env));
+
+    // The arrival confirmation emits an ArrivalConfirmed event.
+    assert_eq!(
+        env.events().all().filter_by_contract(&f.contract_id),
+        [ArrivalConfirmed {
+            ride_id: id.clone(),
+            driver: f.driver.clone(),
+            proof_ref: proof_ref(&env),
+        }
+        .to_xdr(&env, &f.contract_id)],
+    );
+
+    f.client.authorize_release(&f.rider, &id);
+    let ride = f.client.get_ride(&id).unwrap();
+    assert_eq!(ride.arrival_proof, Some(proof_ref(&env)));
+    assert!(ride.passenger_authorized);
+    assert_eq!(ride.status, RideStatus::Locked);
+}
+
+#[test]
+fn confirm_arrival_wrong_driver_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    let res = f
+        .client
+        .try_confirm_arrival(&f.rider, &id, &proof_ref(&env));
+    assert_eq!(res, Err(Ok(Error::WrongDriver)));
+}
+
+#[test]
+fn authorize_release_wrong_rider_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    let res = f.client.try_authorize_release(&f.driver, &id);
+    assert_eq!(res, Err(Ok(Error::WrongRider)));
+}
+
+#[test]
+fn confirm_arrival_empty_proof_fails() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    let res = f
+        .client
+        .try_confirm_arrival(&f.driver, &id, &String::from_str(&env, ""));
+    assert_eq!(res, Err(Ok(Error::EmptyArrivalProof)));
+}
+
+#[test]
+fn confirmations_are_retry_safe() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.confirm_arrival(&f.driver, &id, &proof_ref(&env));
+    // Same proof again: accepted, no change.
+    f.client.confirm_arrival(&f.driver, &id, &proof_ref(&env));
+    // A different proof after the first one: rejected.
+    let res = f.client.try_confirm_arrival(
+        &f.driver,
+        &id,
+        &String::from_str(&env, "proof:other"),
+    );
+    assert_eq!(res, Err(Ok(Error::ArrivalAlreadyConfirmed)));
+
+    f.client.authorize_release(&f.rider, &id);
+    // Repeating the authorization: accepted.
+    f.client.authorize_release(&f.rider, &id);
+
+    f.client.release_fare(&id);
+    assert_eq!(f.client.get_driver_balance(&f.driver), FARE);
+}
+
+#[test]
+fn confirmations_after_refund_fail() {
+    let env = Env::default();
+    let f = setup(&env);
+    let id = ride_id(&env, "ride-001");
+
+    f.client.lock_fare(&f.rider, &f.driver, &FARE, &id);
+    f.client.refund_fare(&id);
+    let res = f
+        .client
+        .try_confirm_arrival(&f.driver, &id, &proof_ref(&env));
+    assert_eq!(res, Err(Ok(Error::NotLocked)));
+    let res = f.client.try_authorize_release(&f.rider, &id);
+    assert_eq!(res, Err(Ok(Error::NotLocked)));
 }

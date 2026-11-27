@@ -5,7 +5,9 @@
 # contract:
 #   1. rider locks a 25 TUSD fare for ride-001
 #   2. get_ride shows the ride Locked
-#   3. admin (Oruva) releases the fare on trip completion
+#   3. driver confirms arrival with a proof reference, passenger
+#      authorizes the release, then the fare is released (dual
+#      confirmation; the admin cannot release alone)
 #   4. get_ride shows the ride Released; driver holds the fare
 #
 # Prerequisites:
@@ -52,7 +54,12 @@ stellar contract invoke --id "$CONTRACT_ID" --source-account rider -- \
   get_ride --ride-id "$RIDE_ID"
 
 echo
-echo "== 3. admin releases the fare on trip completion =="
+echo "== 3. dual confirmation, then release =="
+stellar contract invoke --id "$CONTRACT_ID" --source-account driver -- \
+  confirm_arrival --driver "$DRIVER" --ride-id "$RIDE_ID" \
+  --proof-ref "proof:demo-arrival-001"
+stellar contract invoke --id "$CONTRACT_ID" --source-account rider -- \
+  authorize_release --rider "$RIDER" --ride-id "$RIDE_ID"
 stellar contract invoke --id "$CONTRACT_ID" --source-account issuer -- \
   release_fare --ride-id "$RIDE_ID"
 

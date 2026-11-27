@@ -8,11 +8,31 @@ Buildathon (Build Week 25-30 November 2026, submission 1 December 2026).
 ## What it is
 
 When a rider books a ride, the fare is locked in a Soroban escrow contract.
-When the trip completes, the fare is credited to the driver's withdrawable
-balance. The driver can withdraw to an external Stellar wallet: Oruva keeps
-exactly 10% and the driver submits and pays for the withdrawal transaction.
-When the ride is cancelled, the fare is refunded to the rider. Every step
-emits an on-chain event the Oruva platform can index.
+When the trip completes, release needs two confirmations: the driver
+records an arrival proof reference and the passenger authorizes the
+release. Only then is the fare credited to the driver's withdrawable
+balance; the admin cannot release a fare alone. The driver can withdraw
+to an external Stellar wallet: Oruva keeps exactly 10% and the driver
+submits and pays for the withdrawal transaction. When the ride is
+cancelled, the admin refunds the fare to the rider. Every step emits an
+on-chain event the Oruva platform can index.
+
+Payment rails: Paystack is the default fiat rail, Stellar is the crypto
+settlement rail, and Flutterwave is only the crypto conversion end
+(Stellar USDC to Circle CCTP to Base USDC to Flutterwave stablecoin
+wallet to NGN conversion). Each user has one visible Oruva account
+number: their Paystack Dedicated Virtual Account. Converted NGN is sent
+by Flutterwave as a bank transfer into that Paystack DVA, and the user
+withdraws manually from the Oruva/Paystack balance to their personal
+bank account. No separate Flutterwave account number is shown. Crypto
+itself never enters Paystack; only converted NGN arrives by bank
+transfer. Oruva's internal ledger joins the rails with source-tagged
+sub-balances. Live Flutterwave NGN payout is pending stablecoin
+approval, IP whitelist, wallet-address confirmation, compliance review,
+and a small-value live test; Paystack DVA receiving for this flow is
+also unverified until Paystack confirms enablement and receiving rules.
+Nothing here claims live NGN payout. The full wiring design is in
+`docs/platform-wiring-spec.md`.
 
 - **Fare token:** in the live design, fares move in USDC on Stellar. The
   first testnet demo used **TUSD**, a test-issued asset that stands in for
@@ -29,28 +49,43 @@ emits an on-chain event the Oruva platform can index.
 
 ```text
 Rider ──lock_fare──▶ oruva-escrow ──release_fare──▶ Driver balance
-  (fare token)        (holds fare)     (admin confirms
-  ▲                                    trip completion)
-  └──refund_fare── (admin confirms cancellation)
+  (fare token)        (holds fare)     (needs driver arrival
+  ▲                                    proof + passenger
+  └──refund_fare── (admin confirms    authorization)
+                    cancellation)
 
 Driver balance ──withdraw──▶ External Stellar wallet (90%)
                          └──▶ Oruva treasury (10%)
+Driver balance ──CCTP bridge──▶ Base USDC ──▶ Flutterwave wallet
+                             ──▶ NGN conversion ──▶ transfer into
+                             the user's Paystack DVA (one visible
+                             account number; live leg pending
+                             Flutterwave and DVA gates)
 ```
 
 - `contracts/oruva-escrow` — the Soroban contract (Rust, soroban-sdk 29).
   - `init(admin, token, treasury)` — one-time setup; admin is the Oruva
     platform and treasury receives the withdrawal charge.
-  - `lock_fare(rider, driver, amount, ride_id)` — rider authorizes; pulls
+  - `lock_fare(rider, driver, amount, ride_id)`: rider authorizes; pulls
     the fare into escrow; ride becomes `Locked`. One ride id, one escrow.
-  - `release_fare(ride_id)` — admin only; credits the driver's
-    withdrawable balance; `Released`.
-  - `withdraw(driver, destination, amount)` — driver authorizes and
+  - `confirm_arrival(driver, ride_id, proof_ref)`: driver authorizes;
+    records the arrival proof reference the platform derives from its
+    location evidence. The contract stores the reference; it does not
+    verify GPS itself. The first proof wins; repeating the same proof is
+    accepted so retries are safe.
+  - `authorize_release(rider, ride_id)`: passenger authorizes the
+    release. Repeating it is accepted.
+  - `release_fare(ride_id)`: credits the driver's withdrawable balance,
+    but only when both confirmations are present; `Released`. With both
+    present the release is mechanical, so any submitter may call it. The
+    admin cannot release without the two confirmations.
+  - `withdraw(driver, destination, amount)`: driver authorizes and
     submits; sends 90% to the destination and 10% to treasury.
-  - `refund_fare(ride_id)` — admin only; refunds the rider; `Refunded`.
-  - `get_ride(ride_id)` and `get_driver_balance(driver)` — read-only state.
-  - Events: `FareLocked`, `FareReleased`, `FareRefunded`,
-    `DriverWithdrawal` (ride id or driver is a topic, so records are
-    filterable).
+  - `refund_fare(ride_id)`: admin only; refunds the rider; `Refunded`.
+  - `get_ride(ride_id)` and `get_driver_balance(driver)`: read-only state.
+  - Events: `FareLocked`, `ArrivalConfirmed`, `ReleaseAuthorized`,
+    `FareReleased`, `FareRefunded`, `DriverWithdrawal` (ride id or
+    driver is a topic, so records are filterable).
 - `backend/` — Node service layer for default Stellar wallets, wallet
   activation, external deposit crediting, payout preferences, conversion
   quotes, and payout adapters. Live eNaira and bank payout still require
@@ -83,6 +118,7 @@ Driver balance ──withdraw──▶ External Stellar wallet (90%)
 | oruva-escrow contract, TUSD instance | `CBKN5SUUG6GV6XPX36RYZ4ABNZOBU3SXAF4MQBYP32QXGA7YJ3DOJWLA` |
 | oruva-escrow contract, USDC instance | `CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK` |
 | oruva-escrow contract, phase 2 USDC instance | `CC52W5DFFF4QM3KEOD6DRJKHCCCQ53MZDH7RQ2EZVOMUYFO25SEYDUYB` |
+| oruva-escrow contract, dual-confirmation USDC instance | `CBJSKJ3MROFMWYB2WRAMY237I7PQMIVLE2DMPC4DFDEBG23NYBQ7TUZP` |
 | Oruva treasury (phase 2) | `GDSHAMDZPFBQR6EYFBVR3ZI7HZUSOE4G3VTQHVPVSM7XRK7WPMPXFF3J` |
 | External driver wallet (phase 2 demo) | `GCTCGJZXOOCE7XO3RHANVQFO7IGHLEBOQ35M2WUNVCCBHUUVDUXMGLR7` |
 
@@ -91,6 +127,8 @@ Stellar Expert (testnet), TUSD instance: https://stellar.expert/explorer/testnet
 Stellar Expert (testnet), USDC instance: https://stellar.expert/explorer/testnet/contract/CCOUXV4H2TE2QDVANODMQNV3ZXFUBBP44PAWSZMH326GQRBJIMI2DGNK
 
 Stellar Expert (testnet), phase 2 instance: https://stellar.expert/explorer/testnet/contract/CC52W5DFFF4QM3KEOD6DRJKHCCCQ53MZDH7RQ2EZVOMUYFO25SEYDUYB
+
+Stellar Expert (testnet), dual-confirmation instance: https://stellar.expert/explorer/testnet/contract/CBJSKJ3MROFMWYB2WRAMY237I7PQMIVLE2DMPC4DFDEBG23NYBQ7TUZP
 
 ### Transactions (all confirmed successful on testnet)
 
@@ -199,6 +237,25 @@ an external 1 XLM payment landed in transaction
 `9fccca445a76164d86bbae62be76a206f1496892689353c31d85282c20cf78dc`, and
 the Horizon sync credited it once.
 
+### Dual-confirmation release and CCTP bridge leg (verified 27 November 2026)
+
+Release now needs two confirmations: the driver's arrival proof and the
+passenger's authorization. A fresh instance
+(`CBJSKJ3MROFMWYB2WRAMY237I7PQMIVLE2DMPC4DFDEBG23NYBQ7TUZP`) was deployed
+and verified: a 2 USDC fare locked, a release with only the driver proof
+rejected on-chain, then passenger authorization and release, a 1 USDC
+fare refunded on a second ride, and a 2 USDC withdrawal split 90/10.
+
+The Circle CCTP conversion leg was also proven on testnet the same day:
+0.6 USDC burned on Stellar testnet, attested by Circle, and minted on
+Base Sepolia by the Forwarding Service (0.547007 USDC after the
+0.052993 forwarding fee). The mint recipient was a one-off test address
+standing in for Oruva's Flutterwave Base USDC wallet, which is not
+confirmed yet. Full hashes, links, and balances are in
+`docs/dual-confirmation-evidence.md`. The Flutterwave NGN payout leg
+stays pending stablecoin approval, IP whitelist, wallet-address
+confirmation, compliance review, and a small-value live test.
+
 ## Setup
 
 Prerequisites: Rust (1.84+; tested with 1.100.0), the Stellar CLI
@@ -237,9 +294,12 @@ bash scripts/demo.sh         # terminal 2
 ```
 
 The demo locks a 25 TUSD fare for `ride-001`, shows the ride `Locked`,
-releases it on completion, shows the ride `Released`, and prints balances
-before and after. Each ride id can only be used once; edit `RIDE_ID` in the
-script (and fund the rider with more TUSD if needed) to run it again.
+runs the dual-confirmation release on completion, shows the ride
+`Released`, and prints balances before and after. Each ride id can only
+be used once; edit `RIDE_ID` in the script (and fund the rider with more
+TUSD if needed) to run it again. `scripts/dual-confirmation-demo.sh`
+deploys a fresh USDC instance and verifies the full dual-confirmation
+flow, including a release attempt with only one confirmation.
 
 ## Tests
 
@@ -247,13 +307,18 @@ script (and fund the rider with more TUSD if needed) to run it again.
 cargo test -p oruva-escrow
 ```
 
-13 contract tests, all passing (26 November 2026): lock moves funds and
-records the ride (including the `FareLocked` event), release credits the
-driver balance, withdrawal sends 90% to the external wallet and 10% to
-treasury, partial withdrawal keeps the remaining balance, over-balance and
-zero withdrawals are rejected, refund returns the fare, double-lock
-rejected, release-after-refund rejected, unknown ride rejected, zero lock
-rejected, double init rejected, unknown ride reads as None.
+22 contract tests, all passing (27 November 2026): lock moves funds and
+records the ride (including the `FareLocked` event), dual-confirmed
+release credits the driver balance, release with only the driver proof
+rejected, release with only the passenger authorization rejected,
+release with no confirmations rejected, wrong driver and wrong rider
+confirmations rejected, empty proof rejected, confirmations are
+retry-safe, confirmations after refund rejected, withdrawal sends 90% to
+the external wallet and 10% to treasury, partial withdrawal keeps the
+remaining balance, over-balance and zero withdrawals are rejected,
+refund returns the fare, double-lock rejected, release-after-refund
+rejected, unknown ride rejected, zero lock rejected, double init
+rejected, unknown ride reads as None.
 
 Backend tests:
 
@@ -316,20 +381,29 @@ change was needed.
 
 ## What is next
 
-1. **Live payout partners.** The backend conversion and payout
-   orchestration is built and tested, but live eNaira and Nigerian bank
-   payout still need partner credentials, funded settlement accounts, and
-   licensing checks. The live SEP-24 NGN anchor (NGNC by Link.io) is
-   effectively dormant, Seevcash's Nigeria anchor is still in progress,
-   and neither MoraPay nor Flutterwave is a Stellar-native off-ramp today.
-   The production choice is a confirmed local anchor or payout partner,
-   with the simulated adapters replaced by that partner's live adapter.
+1. **Live payout partners.** The conversion bridge is Circle CCTP:
+   Stellar USDC to Base USDC to Flutterwave stablecoin wallet to NGN
+   conversion, then a Flutterwave bank transfer into the user's Paystack
+   DVA (the one visible Oruva account number), with manual withdrawal
+   from there. The CCTP leg is proven on testnet (see
+   `docs/dual-confirmation-evidence.md`). Live Flutterwave NGN payout
+   still needs stablecoin approval, IP whitelist, wallet-address
+   confirmation, compliance review, and a small-value live test; Paystack
+   DVA receiving for this flow is unverified until Paystack confirms
+   enablement and receiving rules (requested 23 November 2026, reply
+   awaited). The simulated adapters stay in place until those gates
+   clear. Fallback if CCTP forwarding is unavailable: ROZO or NEAR
+   Intents routing; Oruva inventory conversion is an emergency fallback
+   only.
 2. **Platform wiring.** The backend service layer in `backend/` provisions
    default wallets, credits external deposits, stores payout preferences,
    and orchestrates withdrawals and conversions. The production Oruva
-   platform still needs to call `lock_fare` on ride acceptance,
-   `release_fare` on trip completion, and `refund_fare` on cancellation,
-   and index the contract events for settlement records.
+   platform still needs to call `lock_fare` on ride acceptance, run the
+   dual-confirmation release on trip completion, call `refund_fare` on
+   cancellation, index the contract events for settlement records, and
+   run the CCTP bridge adapter. The wiring design, including the
+   source-tagged ledger sub-balances and the payout state machine, is in
+   `docs/platform-wiring-spec.md`.
 3. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
    completed-ride rewards) from Oruva's allocation, separate from fare
    settlement.

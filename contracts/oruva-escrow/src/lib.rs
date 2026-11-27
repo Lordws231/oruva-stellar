@@ -4,8 +4,14 @@
 //! when the trip ends:
 //!
 //! - `lock_fare`   rider locks the fare when the ride is accepted.
-//! - `release_fare` Oruva (admin) credits the fare to the driver's
-//!   withdrawable balance on trip completion.
+//! - `confirm_arrival` the driver records an arrival proof reference
+//!   (a hash or short proof string the platform derives from its location
+//!   evidence) when the trip completes. The contract stores the reference;
+//!   it does not verify GPS itself.
+//! - `authorize_release` the passenger authorizes the release.
+//! - `release_fare` credits the fare to the driver's withdrawable balance,
+//!   but only after both confirmations above are present. The admin cannot
+//!   release a fare alone.
 //! - `withdraw`    driver withdraws to an external Stellar wallet; Oruva
 //!   keeps a 10% withdrawal charge and the driver submits (and pays for)
 //!   the Stellar transaction.
@@ -47,6 +53,10 @@ pub struct Ride {
     /// Fare amount in the token's smallest unit (7 decimals, like stroops).
     pub amount: i128,
     pub status: RideStatus,
+    /// Arrival proof reference recorded by the driver, if any.
+    pub arrival_proof: Option<String>,
+    /// Whether the passenger has authorized the release.
+    pub passenger_authorized: bool,
 }
 
 #[contracttype]
@@ -75,6 +85,12 @@ pub enum Error {
     NotLocked = 5,
     InvalidAmount = 6,
     InsufficientBalance = 7,
+    ArrivalProofMissing = 8,
+    PassengerAuthorizationMissing = 9,
+    WrongDriver = 10,
+    WrongRider = 11,
+    EmptyArrivalProof = 12,
+    ArrivalAlreadyConfirmed = 13,
 }
 
 /// Emitted when a rider locks a fare.
@@ -88,6 +104,25 @@ pub struct FareLocked {
     pub amount: i128,
 }
 
+/// Emitted when the driver records an arrival proof reference.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ArrivalConfirmed {
+    #[topic]
+    pub ride_id: String,
+    pub driver: Address,
+    pub proof_ref: String,
+}
+
+/// Emitted when the passenger authorizes the release.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReleaseAuthorized {
+    #[topic]
+    pub ride_id: String,
+    pub rider: Address,
+}
+
 /// Emitted when a fare is released to the driver on trip completion.
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -97,6 +132,7 @@ pub struct FareReleased {
     pub rider: Address,
     pub driver: Address,
     pub amount: i128,
+    pub proof_ref: String,
 }
 
 /// Emitted when a fare is refunded to the rider on cancellation.
@@ -228,6 +264,8 @@ impl OruvaEscrow {
                 driver: driver.clone(),
                 amount,
                 status: RideStatus::Locked,
+                arrival_proof: None,
+                passenger_authorized: false,
             },
         );
         FareLocked {
@@ -240,16 +278,89 @@ impl OruvaEscrow {
         Ok(())
     }
 
-    /// Release a locked fare into the driver's withdrawable balance. Called
-    /// by the admin when the trip completes. The tokens stay in this
-    /// contract until the driver withdraws, converts, or is paid out by the
-    /// platform backend.
-    pub fn release_fare(env: Env, ride_id: String) -> Result<(), Error> {
-        let admin = read_admin(&env)?;
-        admin.require_auth();
+    /// Record the driver's arrival proof for a locked ride. Only the ride's
+    /// driver may confirm, and only while the fare is locked. `proof_ref`
+    /// is a hash or short proof string the platform derives from its
+    /// location evidence; the contract stores the reference and does not
+    /// verify GPS itself. The first proof wins: repeating the same proof
+    /// is accepted (so platform retries are safe), a different proof is
+    /// rejected.
+    pub fn confirm_arrival(
+        env: Env,
+        driver: Address,
+        ride_id: String,
+        proof_ref: String,
+    ) -> Result<(), Error> {
+        driver.require_auth();
         let mut ride = read_ride(&env, &ride_id)?;
         if ride.status != RideStatus::Locked {
             return Err(Error::NotLocked);
+        }
+        if driver != ride.driver {
+            return Err(Error::WrongDriver);
+        }
+        if proof_ref.is_empty() {
+            return Err(Error::EmptyArrivalProof);
+        }
+        match &ride.arrival_proof {
+            Some(existing) if *existing == proof_ref => return Ok(()),
+            Some(_) => return Err(Error::ArrivalAlreadyConfirmed),
+            None => {}
+        }
+        ride.arrival_proof = Some(proof_ref.clone());
+        write_ride(&env, &ride_id, &ride);
+        ArrivalConfirmed {
+            ride_id,
+            driver,
+            proof_ref,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    /// Authorize the release of a locked fare. Only the ride's passenger
+    /// (rider) may authorize, and only while the fare is locked. Repeating
+    /// the authorization is accepted so platform retries are safe.
+    pub fn authorize_release(
+        env: Env,
+        rider: Address,
+        ride_id: String,
+    ) -> Result<(), Error> {
+        rider.require_auth();
+        let mut ride = read_ride(&env, &ride_id)?;
+        if ride.status != RideStatus::Locked {
+            return Err(Error::NotLocked);
+        }
+        if rider != ride.rider {
+            return Err(Error::WrongRider);
+        }
+        if ride.passenger_authorized {
+            return Ok(());
+        }
+        ride.passenger_authorized = true;
+        write_ride(&env, &ride_id, &ride);
+        ReleaseAuthorized { ride_id, rider }.publish(&env);
+        Ok(())
+    }
+
+    /// Release a locked fare into the driver's withdrawable balance. The
+    /// release needs both confirmations: the driver's arrival proof and
+    /// the passenger's authorization. With both present the release is a
+    /// mechanical settlement step, so any caller may submit it; the admin
+    /// cannot release a fare without the two confirmations. The tokens
+    /// stay in this contract until the driver withdraws, converts, or is
+    /// paid out by the platform backend.
+    pub fn release_fare(env: Env, ride_id: String) -> Result<(), Error> {
+        let mut ride = read_ride(&env, &ride_id)?;
+        if ride.status != RideStatus::Locked {
+            return Err(Error::NotLocked);
+        }
+        let proof_ref = ride
+            .arrival_proof
+            .clone()
+            .ok_or(Error::ArrivalProofMissing)?;
+        if !ride.passenger_authorized {
+            return Err(Error::PassengerAuthorizationMissing);
         }
         let balance = read_driver_balance(&env, &ride.driver) + ride.amount;
         write_driver_balance(&env, &ride.driver, balance);
@@ -260,6 +371,7 @@ impl OruvaEscrow {
             rider: ride.rider,
             driver: ride.driver,
             amount: ride.amount,
+            proof_ref,
         }
         .publish(&env);
         Ok(())
