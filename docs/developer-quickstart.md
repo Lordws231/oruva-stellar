@@ -2,6 +2,8 @@
 
 Five minutes from zero to a settled testnet intent in the sandbox. Everything here is testnet and simulated: no real funds move.
 
+Public sandbox base: `https://intents.oruva.com.ng` (dashboard at the root, docs at `/docs.html`). Set `BASE=https://intents.oruva.com.ng` for the commands below.
+
 ## 1. Get a sandbox key
 
 ```sh
