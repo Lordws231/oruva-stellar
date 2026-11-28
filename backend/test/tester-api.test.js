@@ -120,6 +120,54 @@ test('registration requires terms and issues master credentials', async () => {
   assert.equal(quote.status, 'quoted');
 });
 
+test('sub-keys carry scopes and a timer without exposing the master key', async () => {
+  let clock = new Date('2026-11-28T12:00:00.000Z');
+  const store = new ApiKeyStore({ now: () => clock });
+  const api = createTesterApi({ apiKeyStore: store });
+  const account = api.register({
+    body: { name: 'Key Dev', email: 'keys@example.com', acceptTerms: true },
+  });
+  const master = keyed(account.masterKey);
+
+  const quoteOnly = api.createSubKey({
+    ...master,
+    body: { label: 'quote-only', scopes: ['intents:quote'], expiresInMinutes: 60 },
+  });
+  assert.equal(quoteOnly.key.kind, 'sub');
+  assert.equal(quoteOnly.key.expiresAt, '2026-11-28T13:00:00.000Z');
+
+  const quote = await api.quote({ ...keyed(quoteOnly.apiKey), body: testerRequest });
+  assert.equal(quote.status, 'quoted');
+  await assert.rejects(
+    api.submit({ ...keyed(quoteOnly.apiKey), body: { quoteId: quote.quoteId, idempotencyKey: 'sub-1' } }),
+    /insufficient_scope/,
+  );
+  assert.throws(
+    () => api.createSubKey({ ...keyed(quoteOnly.apiKey), body: { label: 'nested', scopes: ['intents:quote'] } }),
+    /master key required/,
+  );
+
+  const full = api.createSubKey({
+    ...master,
+    body: { label: 'app-key', scopes: ['intents:quote', 'intents:submit', 'intents:status'] },
+  });
+  const record = await api.submit({
+    ...keyed(full.apiKey),
+    body: { quoteId: quote.quoteId, idempotencyKey: 'sub-2' },
+  });
+  assert.equal(api.status({ ...master, params: { intentId: record.intentId } }).status, 'open');
+
+  const listed = api.listKeys(master);
+  assert.equal(listed.keys.length, 3);
+  assert.equal(listed.keys[0].kind, 'master');
+
+  api.revokeSubKey({ ...master, params: { keyId: full.key.id } });
+  assert.throws(() => api.status({ ...keyed(full.apiKey), params: { intentId: record.intentId } }), /revoked/);
+
+  clock = new Date('2026-11-28T13:00:01.000Z');
+  await assert.rejects(api.quote({ ...keyed(quoteOnly.apiKey), body: testerRequest }), /expired/);
+});
+
 test('tester refund after deadline and sandbox reset', async () => {
   const api = createTesterApi();
   const issued = api.issueTesterKey({ body: { label: 'dev-three' } });

@@ -24,6 +24,9 @@ export const TESTER_API_ROUTES = Object.freeze([
   'GET /tester/v1/health',
   'POST /tester/v1/register',
   'POST /tester/v1/signin',
+  'POST /tester/v1/account/keys',
+  'GET /tester/v1/account/keys',
+  'POST /tester/v1/account/keys/:keyId/revoke',
   'POST /tester/v1/keys',
   'POST /tester/v1/intents/quote',
   'POST /tester/v1/intents/submit',
@@ -70,6 +73,7 @@ export function createTesterApi({
   const intentOwners = new Map();
   const accounts = new Map();
   const accountsByEmail = new Map();
+  const keyAccounts = new Map();
 
   function requireEmail(email) {
     if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -94,11 +98,25 @@ export function createTesterApi({
       requireSandbox: true,
     });
     rateLimiter.check(verified.keyId);
-    return verified;
+    const masterId = keyAccounts.get(verified.keyId) ?? verified.keyId;
+    const account = accounts.get(masterId);
+    return {
+      ...verified,
+      masterId,
+      isMaster: Boolean(account && account.keyId === verified.keyId),
+    };
   }
 
-  function ownedIntent(keyId, intentId) {
-    if (intentOwners.get(intentId) !== keyId) {
+  function requireMaster(headers) {
+    const verified = authorize(headers, null);
+    if (!verified.isMaster) {
+      throw new Error('master key required');
+    }
+    return { verified, account: accounts.get(verified.masterId) };
+  }
+
+  function ownedIntent(masterId, intentId) {
+    if (intentOwners.get(intentId) !== masterId) {
       throw new Error('intent not found');
     }
     return service.status(intentId);
@@ -139,11 +157,13 @@ export function createTesterApi({
         name,
         email,
         keyId: record.id,
+        subKeyIds: [],
         createdAt: now,
         termsAcceptedAt: now,
       };
       accounts.set(account.masterId, account);
       accountsByEmail.set(email, account.masterId);
+      keyAccounts.set(record.id, account.masterId);
       return {
         ...publicAccount(account),
         masterKey: rawKey,
@@ -165,6 +185,65 @@ export function createTesterApi({
         throw new Error('invalid master credentials');
       }
       return { ok: true, ...publicAccount(account) };
+    },
+
+    createSubKey({ headers, body = {} } = {}) {
+      const { account } = requireMaster(headers);
+      const label = requireLabel(body.label);
+      const scopes = Array.isArray(body.scopes) ? [...new Set(body.scopes)] : [];
+      if (scopes.length === 0 || scopes.some((scope) => !TESTER_SCOPES.includes(scope))) {
+        throw new Error(`scopes must be a non-empty subset of: ${TESTER_SCOPES.join(', ')}`);
+      }
+      let expiresAt = null;
+      if (body.expiresInMinutes != null) {
+        const minutes = Number(body.expiresInMinutes);
+        if (!Number.isFinite(minutes) || minutes < 1 || minutes > 43200) {
+          throw new Error('expiresInMinutes must be between 1 and 43200');
+        }
+        expiresAt = new Date(new Date(apiKeyStore.timestamp()).getTime() + minutes * 60000).toISOString();
+      } else if (body.expiresAt != null) {
+        const parsed = new Date(body.expiresAt);
+        if (Number.isNaN(parsed.getTime()) || parsed <= new Date()) {
+          throw new Error('expiresAt must be a future date');
+        }
+        expiresAt = parsed.toISOString();
+      }
+      const { rawKey, record } = apiKeyStore.issueKey({
+        scopes,
+        sandbox: true,
+        label,
+        expiresAt,
+      });
+      account.subKeyIds.push(record.id);
+      keyAccounts.set(record.id, account.masterId);
+      return { apiKey: rawKey, key: { ...record, kind: 'sub', masterId: account.masterId } };
+    },
+
+    listKeys({ headers } = {}) {
+      const { account } = requireMaster(headers);
+      const describe = (keyId, kind) => {
+        const record = apiKeyStore.getKey(keyId);
+        return record ? { ...record, kind, masterId: account.masterId } : null;
+      };
+      return {
+        masterId: account.masterId,
+        keys: [
+          describe(account.keyId, 'master'),
+          ...account.subKeyIds.map((keyId) => describe(keyId, 'sub')),
+        ].filter(Boolean),
+      };
+    },
+
+    revokeSubKey({ headers, params = {} } = {}) {
+      const { account } = requireMaster(headers);
+      if (params.keyId === account.keyId) {
+        throw new Error('the master key cannot be revoked here');
+      }
+      if (!account.subKeyIds.includes(params.keyId)) {
+        throw new Error('key not found');
+      }
+      const record = apiKeyStore.revokeKey(params.keyId);
+      return { ok: true, key: { ...record, kind: 'sub', masterId: account.masterId } };
     },
 
     issueTesterKey({ body = {} } = {}) {
@@ -196,41 +275,41 @@ export function createTesterApi({
       }
       const quote = await service.quote({
         ...body,
-        userId: `tester:${verified.keyId}`,
+        userId: `tester:${verified.masterId}`,
       });
-      quoteOwners.set(quote.quoteId, verified.keyId);
+      quoteOwners.set(quote.quoteId, verified.masterId);
       return { ...quote, sandbox: true, network: TESTER_NETWORK };
     },
 
     async submit({ headers, body = {} } = {}) {
       const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
-      if (quoteOwners.get(body.quoteId) !== verified.keyId) {
+      if (quoteOwners.get(body.quoteId) !== verified.masterId) {
         throw new Error('quote not found');
       }
       const record = await service.submit({
         quoteId: body.quoteId,
-        idempotencyKey: `${verified.keyId}:${body.idempotencyKey ?? ''}`,
+        idempotencyKey: `${verified.masterId}:${body.idempotencyKey ?? ''}`,
       });
-      intentOwners.set(record.intentId, verified.keyId);
+      intentOwners.set(record.intentId, verified.masterId);
       return { ...record, sandbox: true, network: TESTER_NETWORK };
     },
 
     status({ headers, params = {} } = {}) {
       const verified = authorize(headers, API_KEY_SCOPES.STATUS);
-      const record = ownedIntent(verified.keyId, params.intentId);
+      const record = ownedIntent(verified.masterId, params.intentId);
       return { ...record, sandbox: true, network: TESTER_NETWORK };
     },
 
     refund({ headers, params = {} } = {}) {
       const verified = authorize(headers, API_KEY_SCOPES.REFUND);
-      ownedIntent(verified.keyId, params.intentId);
+      ownedIntent(verified.masterId, params.intentId);
       const record = service.refund(params.intentId);
       return { ...record, sandbox: true, network: TESTER_NETWORK };
     },
 
     simulateFill({ headers, params = {} } = {}) {
       const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
-      const record = ownedIntent(verified.keyId, params.intentId);
+      const record = ownedIntent(verified.masterId, params.intentId);
       if (record.status !== 'open') {
         throw new Error(`only open intents can simulate a fill, current status ${record.status}`);
       }
@@ -258,7 +337,7 @@ export function createTesterApi({
       let removedIntents = 0;
       let removedQuotes = 0;
       for (const [intentId, owner] of [...intentOwners.entries()]) {
-        if (owner !== verified.keyId) continue;
+        if (owner !== verified.masterId) continue;
         service.intents.delete(intentId);
         intentOwners.delete(intentId);
         removedIntents += 1;
@@ -267,7 +346,7 @@ export function createTesterApi({
         if (!service.intents.has(intentId)) service.idempotency.delete(key);
       }
       for (const [quoteId, owner] of [...quoteOwners.entries()]) {
-        if (owner !== verified.keyId) continue;
+        if (owner !== verified.masterId) continue;
         service.quotes.delete(quoteId);
         quoteOwners.delete(quoteId);
         removedQuotes += 1;

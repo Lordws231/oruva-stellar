@@ -50,6 +50,7 @@ function publicRecord(record) {
     sandbox: record.sandbox,
     label: record.label,
     createdAt: record.createdAt,
+    expiresAt: record.expiresAt ?? null,
     revokedAt: record.revokedAt,
   };
 }
@@ -68,10 +69,16 @@ export class ApiKeyStore {
     return date.toISOString();
   }
 
-  issueKey({ scopes = [], sandbox = false, label = '' } = {}) {
+  issueKey({ scopes = [], sandbox = false, label = '', expiresAt = null } = {}) {
     const normalizedScopes = normalizeScopes(scopes);
     const isSandbox = Boolean(sandbox);
     const cleanLabel = typeof label === 'string' ? label : String(label ?? '');
+    let cleanExpiresAt = null;
+    if (expiresAt != null) {
+      const parsed = new Date(expiresAt);
+      if (Number.isNaN(parsed.getTime())) throw new Error('expiresAt must be a valid date');
+      cleanExpiresAt = parsed.toISOString();
+    }
     const prefix = isSandbox ? 'oruva_test' : 'oruva_live';
     let rawKey = '';
     let keyHash = '';
@@ -86,6 +93,7 @@ export class ApiKeyStore {
       sandbox: isSandbox,
       label: cleanLabel,
       createdAt: this.timestamp(),
+      expiresAt: cleanExpiresAt,
       revokedAt: null,
     };
     this.records.set(record.id, record);
@@ -102,6 +110,9 @@ export class ApiKeyStore {
     const record = id ? this.records.get(id) : null;
     if (!record) return { ok: false, reason: 'invalid_key' };
     if (record.revokedAt) return { ok: false, reason: 'revoked' };
+    if (record.expiresAt && new Date(this.timestamp()) >= new Date(record.expiresAt)) {
+      return { ok: false, reason: 'expired' };
+    }
     const allowSandbox = Boolean(options.allowSandbox);
     const requireSandbox = Boolean(options.requireSandbox);
     if (requireSandbox && !record.sandbox) {

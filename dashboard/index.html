@@ -5,67 +5,127 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oruva Intents Developer Dashboard</title>
 <style>
-  :root { color-scheme: light; }
+  :root {
+    color-scheme: light;
+    --navy: #0a2540;
+    --blue: #0b6bcb;
+    --blue-dark: #084e96;
+    --gold: #c9a227;
+    --ink: #10233b;
+    --muted: #5b6b82;
+    --line: #dbe4f0;
+    --bg: #eef3fa;
+    --card: #ffffff;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: #f4f6f5;
-    color: #14201b;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #e8f0fb 0, var(--bg) 260px);
+    color: var(--ink);
   }
-  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 1.5rem; margin: 0 0 8px; }
-  h2 { font-size: 1.1rem; margin: 0 0 12px; }
-  p { line-height: 1.5; }
+  main { max-width: 1020px; margin: 0 auto; padding: 20px 16px 56px; }
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #0d3f73 62%, var(--blue) 100%);
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 26px 24px;
+    box-shadow: 0 18px 40px rgba(10, 37, 64, 0.22);
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    right: -70px; top: -70px;
+    width: 230px; height: 230px;
+    border: 26px solid rgba(201, 162, 39, 0.28);
+    border-radius: 50%;
+  }
+  .brandrow { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+  .omark {
+    width: 52px; height: 52px; flex: 0 0 52px;
+    border-radius: 50%;
+    border: 7px solid #ffffff;
+    border-bottom-color: var(--gold);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 1.05rem; color: #ffffff;
+  }
+  h1 { font-size: 1.65rem; margin: 0; letter-spacing: -0.02em; }
+  .tagline { margin: 4px 0 0; color: #cfe2f7; line-height: 1.45; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; position: relative; z-index: 1; }
+  .badge {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 0.8rem; font-weight: 650;
+  }
+  .badge.gold { background: var(--gold); border-color: var(--gold); color: #1c1602; }
+  .hero a { color: #ffffff; font-weight: 700; }
+  h2 { font-size: 1.08rem; margin: 0 0 12px; letter-spacing: -0.01em; }
+  p { line-height: 1.55; }
   .notice {
     background: #fff7e0;
-    border: 1px solid #d9a400;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin: 16px 0 24px;
+    border: 1px solid #e3b93c;
+    border-left: 6px solid var(--gold);
+    border-radius: 14px;
+    padding: 13px 16px;
+    margin: 0 0 18px;
+    box-shadow: 0 8px 22px rgba(10, 37, 64, 0.07);
   }
   .notice strong { display: block; margin-bottom: 4px; }
   section {
-    background: #ffffff;
-    border: 1px solid #d7dedb;
-    border-radius: 8px;
-    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 20px;
     margin-bottom: 16px;
+    box-shadow: 0 10px 28px rgba(10, 37, 64, 0.07);
   }
+  #gateSection { border-top: 5px solid var(--blue); }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
+    gap: 14px;
   }
-  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+  label { display: block; font-size: 0.85rem; font-weight: 650; margin-bottom: 5px; }
   input, select {
     width: 100%;
-    padding: 8px;
-    border: 1px solid #b9c4c0;
-    border-radius: 6px;
+    padding: 10px 11px;
+    border: 1px solid #b9c9de;
+    border-radius: 10px;
     font: inherit;
     background: #ffffff;
     color: inherit;
   }
-  .hint { font-size: 0.8rem; color: #4c5a55; margin-top: 4px; }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  button {
-    padding: 8px 14px;
-    border: 1px solid #0b6b4f;
-    border-radius: 6px;
-    background: #0b6b4f;
-    color: #ffffff;
-    font: inherit;
-    cursor: pointer;
+  input:focus, select:focus {
+    outline: 3px solid rgba(11, 107, 203, 0.22);
+    border-color: var(--blue);
   }
-  button.secondary { background: #ffffff; color: #0b6b4f; }
+  input[readonly] { background: #f2f6fc; color: #33475f; }
+  .hint { font-size: 0.8rem; color: var(--muted); margin-top: 5px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+  button {
+    padding: 10px 16px;
+    border: 1px solid var(--blue);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #1280e0, var(--blue-dark));
+    color: #ffffff;
+    font: inherit; font-weight: 650;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(11, 107, 203, 0.22);
+  }
+  button.secondary { background: #ffffff; color: var(--blue-dark); box-shadow: none; }
   button:disabled { opacity: 0.55; cursor: wait; }
-  #statusLine { font-weight: 600; margin: 0 0 8px; }
+  #statusLine { font-weight: 700; margin: 0 0 8px; }
   pre {
-    background: #101613;
-    color: #d7f0e3;
-    border-radius: 8px;
-    padding: 12px;
+    background: #08192e;
+    color: #c9ecff;
+    border-radius: 14px;
+    padding: 14px;
     overflow: auto;
     min-height: 160px;
     white-space: pre-wrap;
@@ -77,12 +137,37 @@
   body:not(.locked) #gateSection { display: none; }
   .checkrow { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; }
   .checkrow input { width: auto; margin-top: 3px; }
+  #keyList p {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #f8fbff;
+  }
+  @media (max-width: 640px) {
+    main { padding: 12px 10px 40px; }
+    .hero { padding: 20px 16px; border-radius: 16px; }
+    h1 { font-size: 1.35rem; }
+    section { padding: 16px; border-radius: 14px; }
+  }
 </style>
 </head>
 <body class="locked">
 <main>
-  <h1>Oruva Intents Developer Dashboard</h1>
-  <p>Test the quote, submit, status and refund API contracts from your browser. New here? Read the <a href="docs.html">tester docs and quickstart</a>.</p>
+  <header class="hero">
+    <div class="brandrow">
+      <div class="omark" aria-hidden="true">O</div>
+      <div>
+        <h1>Oruva Intents Developer Dashboard</h1>
+        <p class="tagline">Test quote, submit, status and refund flows on Stellar testnet. New here? Read the <a href="docs.html">tester docs and quickstart</a>.</p>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge gold">Stellar Testnet</span>
+      <span class="badge">Sandbox</span>
+      <span class="badge">No real funds</span>
+      <span class="badge">Comfort and Safety at Every Destination</span>
+    </div>
+  </header>
 
   <div class="notice" role="note">
     <strong>Sandbox and testnet only</strong>
@@ -244,6 +329,41 @@
       <button type="button" id="statusButton">Check status</button>
       <button type="button" id="refundButton">Request refund</button>
     </div>
+  </section>
+
+
+  <section class="platform-section" aria-labelledby="keysHeading">
+    <h2 id="keysHeading">API keys</h2>
+    <p>Create optional keys with limited access and a timer, so your apps never expose the Master Key. A new key is shown once. Only the Master Key can create, list or revoke keys.</p>
+    <div class="grid">
+      <div>
+        <label for="subKeyLabel">Key label</label>
+        <input id="subKeyLabel" type="text" placeholder="my-app" autocomplete="off">
+      </div>
+      <div>
+        <label for="subKeyExpiry">Timer</label>
+        <select id="subKeyExpiry">
+          <option value="15">15 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="1440">24 hours</option>
+          <option value="10080">7 days</option>
+          <option value="43200">30 days</option>
+          <option value="">No expiry</option>
+        </select>
+      </div>
+    </div>
+    <p style="margin:12px 0 4px"><strong>Access</strong></p>
+    <div class="grid">
+      <label><input type="checkbox" class="subScope" value="intents:quote" checked> Quote</label>
+      <label><input type="checkbox" class="subScope" value="intents:submit" checked> Submit</label>
+      <label><input type="checkbox" class="subScope" value="intents:status" checked> Status</label>
+      <label><input type="checkbox" class="subScope" value="intents:refund"> Refund</label>
+    </div>
+    <div class="actions">
+      <button type="button" id="createSubKeyButton">Create key</button>
+      <button type="button" id="listKeysButton" class="secondary">List keys</button>
+    </div>
+    <div id="keyList" style="margin-top:12px"></div>
   </section>
 
   <section class="platform-section" aria-labelledby="resultsHeading">
@@ -438,6 +558,57 @@
       sessionStorage.removeItem(SESSION_KEY);
     }
   })();
+
+
+  function renderKeys(keys) {
+    var host = document.getElementById('keyList');
+    if (!keys || keys.length === 0) {
+      host.innerHTML = '<p class="hint">No keys yet.</p>';
+      return;
+    }
+    host.innerHTML = keys.map(function (key) {
+      var state = key.revokedAt ? 'revoked' : (key.expiresAt && new Date(key.expiresAt) <= new Date() ? 'expired' : 'active');
+      var revoke = key.kind === 'sub' && state === 'active'
+        ? ' <button type="button" class="secondary revokeKey" data-key-id="' + key.id + '">Revoke</button>'
+        : '';
+      return '<p><strong>' + key.label + '</strong> (' + key.kind + ', ' + state + ')<br>'
+        + '<span class="hint">Access: ' + key.scopes.join(', ')
+        + (key.expiresAt ? ' · Expires: ' + key.expiresAt : ' · No expiry') + '</span>' + revoke + '</p>';
+    }).join('');
+    host.querySelectorAll('.revokeKey').forEach(function (button) {
+      button.addEventListener('click', function () {
+        callApi('/v1/account/keys/' + encodeURIComponent(button.getAttribute('data-key-id')) + '/revoke', {
+          method: 'POST', body: {}, label: 'Revoke key'
+        }).then(loadKeys);
+      });
+    });
+  }
+
+  function loadKeys() {
+    return callApi('/v1/account/keys', { method: 'GET', label: 'List keys' }).then(function (body) {
+      if (body && body.keys) renderKeys(body.keys);
+    });
+  }
+
+  document.getElementById('createSubKeyButton').addEventListener('click', function () {
+    run('Create key', function () {
+      var label = field('subKeyLabel');
+      if (!label) throw new Error('Set a key label first.');
+      var scopes = Array.prototype.map.call(
+        document.querySelectorAll('.subScope:checked'),
+        function (box) { return box.value; }
+      );
+      if (scopes.length === 0) throw new Error('Choose at least one access scope.');
+      var body = { label: label, scopes: scopes };
+      var expiry = field('subKeyExpiry');
+      if (expiry) body.expiresInMinutes = Number(expiry);
+      callApi('/v1/account/keys', { method: 'POST', body: body, label: 'Create key' }).then(loadKeys);
+    });
+  });
+
+  document.getElementById('listKeysButton').addEventListener('click', function () {
+    run('List keys', loadKeys);
+  });
 
   document.getElementById('clearKey').addEventListener('click', function () {
     document.getElementById('apiKey').value = '';

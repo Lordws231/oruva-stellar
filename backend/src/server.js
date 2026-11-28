@@ -88,6 +88,25 @@ export function createTesterHttpServer({
         sendJson(response, 200, api.signIn({ body: await readJsonBody(request) }));
         return;
       }
+      if (method === 'POST' && path === '/tester/v1/account/keys') {
+        sendJson(response, 201, api.createSubKey({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
+      if (method === 'GET' && path === '/tester/v1/account/keys') {
+        sendJson(response, 200, api.listKeys({ headers: request.headers }));
+        return;
+      }
+      const revokeMatch = path.match(/^\/tester\/v1\/account\/keys\/([^/]+)\/revoke$/);
+      if (method === 'POST' && revokeMatch) {
+        sendJson(response, 200, api.revokeSubKey({
+          headers: request.headers,
+          params: { keyId: decodeURIComponent(revokeMatch[1]) },
+        }));
+        return;
+      }
       if (method === 'POST' && path === '/tester/v1/keys') {
         sendJson(response, 201, api.issueTesterKey({ body: await readJsonBody(request) }));
         return;

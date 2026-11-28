@@ -42,9 +42,21 @@ Returns service state, network, caps and the route list. No key required.
 }
 ```
 
+### POST /tester/v1/account/keys
+
+Creates an optional sub-key under your account, so apps never expose the Master Key. Master Key required. Body: `{ "label": "my-app", "scopes": ["intents:quote", "intents:submit"], "expiresInMinutes": 60 }`. Scopes are any subset of `intents:quote`, `intents:submit`, `intents:status`, `intents:refund`. The timer accepts `expiresInMinutes` (1 to 43200) or a future `expiresAt`; omit both for no expiry. The raw key returns once, in `apiKey`. Expired keys fail with `expired`.
+
+### GET /tester/v1/account/keys
+
+Lists your master and sub-keys with scopes, expiry and status. Master Key required.
+
+### POST /tester/v1/account/keys/:keyId/revoke
+
+Revokes a sub-key immediately. Master Key required. The Master Key itself cannot be revoked here.
+
 ### POST /tester/v1/keys
 
-Issues a sandbox key. Body: `{ "label": "your-app" }`. The response returns the raw key once, in `apiKey`. Store it safely; it cannot be recovered later.
+Legacy standalone sandbox key issuance. Prefer registration plus sub-keys for account-based testing.
 
 ### POST /tester/v1/intents/quote
 
