@@ -182,8 +182,9 @@
     <p>Access to the Oruva Intents tester platform requires an account. Registration issues your Master ID and Master Key. The Master URL is <code>https://intents.oruva.com.ng/tester</code>.</p>
     <div class="grid">
       <div>
-        <label for="regName">Full name</label>
-        <input id="regName" type="text" autocomplete="name">
+        <label for="regName">Business / Organization / Platform name</label>
+        <input id="regName" type="text" placeholder="e.g. Acme Mobility Ltd" autocomplete="organization">
+        <p class="hint">This becomes the default name of your Master Key.</p>
       </div>
       <div>
         <label for="regEmail">Email</label>
@@ -230,7 +231,7 @@
       <div>
         <label for="apiKey">Master Key (sandbox API key)</label>
         <input id="apiKey" type="password" placeholder="oruva_test_..." autocomplete="off">
-        <p class="hint">Issued by Oruva at registration. Kept in this tab session only.</p>
+        <p class="hint">Issued by Oruva at registration and named after your registered business, organization or platform. Kept in this tab session only.</p>
       </div>
     </div>
     <div class="actions">
@@ -334,11 +335,11 @@
 
   <section class="platform-section" aria-labelledby="keysHeading">
     <h2 id="keysHeading">API keys</h2>
-    <p>Create optional keys with limited access and a timer, so your apps never expose the Master Key. A new key is shown once. Only the Master Key can create, list or revoke keys.</p>
+    <p>Create optional keys with limited access and a timer, so your apps never expose the Master Key. Give each key an ID Name. You can delete an optional key at any time by its ID Name, with no conditions. A new key is shown once.</p>
     <div class="grid">
       <div>
-        <label for="subKeyLabel">Key label</label>
-        <input id="subKeyLabel" type="text" placeholder="my-app" autocomplete="off">
+        <label for="subKeyLabel">ID Name</label>
+        <input id="subKeyLabel" type="text" placeholder="e.g. my-app" autocomplete="off">
       </div>
       <div>
         <label for="subKeyExpiry">Timer</label>
@@ -519,7 +520,7 @@
       return;
     }
     gateCall('/v1/register', {
-      name: field('regName'),
+      businessName: field('regName'),
       email: field('regEmail'),
       acceptTerms: true
     }, 'Registration').then(function (account) {
@@ -568,17 +569,19 @@
     }
     host.innerHTML = keys.map(function (key) {
       var state = key.revokedAt ? 'revoked' : (key.expiresAt && new Date(key.expiresAt) <= new Date() ? 'expired' : 'active');
-      var revoke = key.kind === 'sub' && state === 'active'
-        ? ' <button type="button" class="secondary revokeKey" data-key-id="' + key.id + '">Revoke</button>'
+      var revoke = key.kind === 'sub'
+        ? ' <button type="button" class="secondary deleteKey" data-id-name="' + key.idName + '">Delete</button>'
         : '';
       return '<p><strong>' + key.label + '</strong> (' + key.kind + ', ' + state + ')<br>'
         + '<span class="hint">Access: ' + key.scopes.join(', ')
         + (key.expiresAt ? ' · Expires: ' + key.expiresAt : ' · No expiry') + '</span>' + revoke + '</p>';
     }).join('');
-    host.querySelectorAll('.revokeKey').forEach(function (button) {
+    host.querySelectorAll('.deleteKey').forEach(function (button) {
       button.addEventListener('click', function () {
-        callApi('/v1/account/keys/' + encodeURIComponent(button.getAttribute('data-key-id')) + '/revoke', {
-          method: 'POST', body: {}, label: 'Revoke key'
+        callApi('/v1/account/keys/delete', {
+          method: 'POST',
+          body: { idName: button.getAttribute('data-id-name') },
+          label: 'Delete key'
         }).then(loadKeys);
       });
     });
@@ -593,13 +596,13 @@
   document.getElementById('createSubKeyButton').addEventListener('click', function () {
     run('Create key', function () {
       var label = field('subKeyLabel');
-      if (!label) throw new Error('Set a key label first.');
+      if (!label) throw new Error('Set an ID Name first.');
       var scopes = Array.prototype.map.call(
         document.querySelectorAll('.subScope:checked'),
         function (box) { return box.value; }
       );
       if (scopes.length === 0) throw new Error('Choose at least one access scope.');
-      var body = { label: label, scopes: scopes };
+      var body = { idName: label, scopes: scopes };
       var expiry = field('subKeyExpiry');
       if (expiry) body.expiresInMinutes = Number(expiry);
       callApi('/v1/account/keys', { method: 'POST', body: body, label: 'Create key' }).then(loadKeys);

@@ -8,7 +8,7 @@ Public sandbox base: `https://intents.oruva.com.ng` (dashboard at the root, docs
 
 ```sh
 curl -X POST "$BASE/tester/v1/register" -H 'content-type: application/json' \
-  -d '{"name":"Your Name","email":"you@example.com","acceptTerms":true}'
+  -d '{"businessName":"Your Business or Platform","email":"you@example.com","acceptTerms":true}'
 ```
 
 Registration requires accepting the Oruva Intents Tester Terms and Policy. Oruva issues your Master ID, your Master Key (starts with `oruva_test_`, shown once) and the Master URL. Save the Master Key; it signs you in and authorizes API calls.

@@ -118,6 +118,11 @@ test('registration requires terms and issues master credentials', async () => {
 
   const quote = await api.quote({ ...keyed(account.masterKey), body: testerRequest });
   assert.equal(quote.status, 'quoted');
+
+  assert.equal(account.masterKeyName, 'Dev One');
+  const masterKey = api.listKeys(keyed(account.masterKey)).keys[0];
+  assert.equal(masterKey.kind, 'master');
+  assert.equal(masterKey.idName, 'Dev One');
 });
 
 test('sub-keys carry scopes and a timer without exposing the master key', async () => {
@@ -166,6 +171,18 @@ test('sub-keys carry scopes and a timer without exposing the master key', async 
 
   clock = new Date('2026-11-28T13:00:01.000Z');
   await assert.rejects(api.quote({ ...keyed(quoteOnly.apiKey), body: testerRequest }), /expired/);
+
+  assert.throws(
+    () => api.createSubKey({ ...master, body: { idName: 'quote-only', scopes: ['intents:quote'] } }),
+    /id name already in use/,
+  );
+
+  const deleted = api.deleteSubKey({ ...master, body: { idName: 'quote-only' } });
+  assert.equal(deleted.ok, true);
+  assert.equal(deleted.deleted, 'quote-only');
+  await assert.rejects(api.quote({ ...keyed(quoteOnly.apiKey), body: testerRequest }), /invalid_key/);
+  assert.equal(api.listKeys(master).keys.length, 2);
+  assert.throws(() => api.deleteSubKey({ ...master, body: { idName: 'quote-only' } }), /key not found/);
 });
 
 test('tester refund after deadline and sandbox reset', async () => {

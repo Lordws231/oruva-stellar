@@ -27,6 +27,7 @@ export const TESTER_API_ROUTES = Object.freeze([
   'POST /tester/v1/account/keys',
   'GET /tester/v1/account/keys',
   'POST /tester/v1/account/keys/:keyId/revoke',
+  'POST /tester/v1/account/keys/delete',
   'POST /tester/v1/keys',
   'POST /tester/v1/intents/quote',
   'POST /tester/v1/intents/submit',
@@ -87,6 +88,8 @@ export function createTesterApi({
       masterId: account.masterId,
       masterUrl: MASTER_URL,
       name: account.name,
+      businessName: account.businessName ?? account.name,
+      masterKeyName: account.businessName ?? account.name,
       email: account.email,
       createdAt: account.createdAt,
       termsAcceptedAt: account.termsAcceptedAt,
@@ -137,7 +140,7 @@ export function createTesterApi({
     },
 
     register({ body = {} } = {}) {
-      const name = requireLabel(body.name);
+      const name = requireLabel(body.businessName ?? body.name);
       const email = requireEmail(body.email);
       if (body.acceptTerms !== true) {
         throw new Error('terms acceptance is required');
@@ -149,12 +152,13 @@ export function createTesterApi({
       const { rawKey, record } = apiKeyStore.issueKey({
         scopes: [...TESTER_SCOPES],
         sandbox: true,
-        label: email,
+        label: name,
       });
       const now = new Date().toISOString();
       const account = {
         masterId: `oruva-dev-${randomUUID()}`,
         name,
+        businessName: name,
         email,
         keyId: record.id,
         subKeyIds: [],
@@ -189,7 +193,12 @@ export function createTesterApi({
 
     createSubKey({ headers, body = {} } = {}) {
       const { account } = requireMaster(headers);
-      const label = requireLabel(body.label);
+      const label = requireLabel(body.idName ?? body.label);
+      const taken = account.subKeyIds.some((keyId) => {
+        const existing = apiKeyStore.getKey(keyId);
+        return existing && existing.label.toLowerCase() === label.toLowerCase();
+      });
+      if (taken) throw new Error('id name already in use');
       const scopes = Array.isArray(body.scopes) ? [...new Set(body.scopes)] : [];
       if (scopes.length === 0 || scopes.some((scope) => !TESTER_SCOPES.includes(scope))) {
         throw new Error(`scopes must be a non-empty subset of: ${TESTER_SCOPES.join(', ')}`);
@@ -232,6 +241,20 @@ export function createTesterApi({
           ...account.subKeyIds.map((keyId) => describe(keyId, 'sub')),
         ].filter(Boolean),
       };
+    },
+
+    deleteSubKey({ headers, body = {} } = {}) {
+      const { account } = requireMaster(headers);
+      const idName = requireLabel(body.idName ?? body.label);
+      const keyId = account.subKeyIds.find((candidate) => {
+        const existing = apiKeyStore.getKey(candidate);
+        return existing && existing.label.toLowerCase() === idName.toLowerCase();
+      });
+      if (!keyId) throw new Error('key not found');
+      apiKeyStore.deleteKey(keyId);
+      account.subKeyIds = account.subKeyIds.filter((candidate) => candidate !== keyId);
+      keyAccounts.delete(keyId);
+      return { ok: true, deleted: idName };
     },
 
     revokeSubKey({ headers, params = {} } = {}) {

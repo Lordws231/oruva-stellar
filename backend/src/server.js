@@ -99,6 +99,13 @@ export function createTesterHttpServer({
         sendJson(response, 200, api.listKeys({ headers: request.headers }));
         return;
       }
+      if (method === 'POST' && path === '/tester/v1/account/keys/delete') {
+        sendJson(response, 200, api.deleteSubKey({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
       const revokeMatch = path.match(/^\/tester\/v1\/account\/keys\/([^/]+)\/revoke$/);
       if (method === 'POST' && revokeMatch) {
         sendJson(response, 200, api.revokeSubKey({

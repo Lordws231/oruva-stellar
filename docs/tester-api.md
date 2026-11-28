@@ -13,7 +13,7 @@ The Tester API lets other developers use and test Oruva Intents on Stellar testn
 
 ## Registration and master credentials
 
-Access requires registration. `POST /tester/v1/register` with name, email and `acceptTerms: true` creates your account and issues your credentials: a Master ID (`oruva-dev-...`), your Master Key (shown once, stored hashed), and the Master URL `https://intents.oruva.com.ng/tester`. Oruva issues all three; you never invent them. `POST /tester/v1/signin` with your Master ID and Master Key signs you back in. The dashboard stays locked until you register or sign in.
+Access requires registration. `POST /tester/v1/register` with `businessName` (your registered business, organization or platform name), email and `acceptTerms: true` creates your account and issues your credentials: a Master ID (`oruva-dev-...`), your Master Key (shown once, stored hashed, named after your registered business name by default), and the Master URL `https://intents.oruva.com.ng/tester`. Oruva issues all three; you never invent them. `POST /tester/v1/signin` with your Master ID and Master Key signs you back in. The dashboard stays locked until you register or sign in.
 
 ## Authentication
 
@@ -44,7 +44,11 @@ Returns service state, network, caps and the route list. No key required.
 
 ### POST /tester/v1/account/keys
 
-Creates an optional sub-key under your account, so apps never expose the Master Key. Master Key required. Body: `{ "label": "my-app", "scopes": ["intents:quote", "intents:submit"], "expiresInMinutes": 60 }`. Scopes are any subset of `intents:quote`, `intents:submit`, `intents:status`, `intents:refund`. The timer accepts `expiresInMinutes` (1 to 43200) or a future `expiresAt`; omit both for no expiry. The raw key returns once, in `apiKey`. Expired keys fail with `expired`.
+Creates an optional sub-key under your account, so apps never expose the Master Key. Master Key required. Body: `{ "idName": "my-app", "scopes": ["intents:quote", "intents:submit"], "expiresInMinutes": 60 }`. Every optional key carries an ID Name, unique in your account. Scopes are any subset of `intents:quote`, `intents:submit`, `intents:status`, `intents:refund`. The timer accepts `expiresInMinutes` (1 to 43200) or a future `expiresAt`; omit both for no expiry. The raw key returns once, in `apiKey`. Expired keys fail with `expired`.
+
+### POST /tester/v1/account/keys/delete
+
+Deletes an optional key by its ID Name: `{ "idName": "my-app" }`. Master Key required. Deletion has no conditions: active, expired and revoked optional keys can all be deleted, and the key stops working immediately.
 
 ### GET /tester/v1/account/keys
 

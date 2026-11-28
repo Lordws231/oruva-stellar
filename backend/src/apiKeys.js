@@ -49,6 +49,7 @@ function publicRecord(record) {
     scopes: [...record.scopes],
     sandbox: record.sandbox,
     label: record.label,
+    idName: record.label,
     createdAt: record.createdAt,
     expiresAt: record.expiresAt ?? null,
     revokedAt: record.revokedAt,
@@ -150,6 +151,14 @@ export class ApiKeyStore {
     const record = this.records.get(id);
     if (!record) throw new Error('api key not found');
     if (!record.revokedAt) record.revokedAt = this.timestamp();
+    return publicRecord(record);
+  }
+
+  deleteKey(id) {
+    const record = this.records.get(id);
+    if (!record) throw new Error('api key not found');
+    this.records.delete(id);
+    this.byHash.delete(record.keyHash);
     return publicRecord(record);
   }
 
