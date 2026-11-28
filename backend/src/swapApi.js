@@ -33,33 +33,166 @@ export const ORDER_STATUSES = Object.freeze([
   'UNTRIGGERED',
 ]);
 
+export const CHAINS = Object.freeze({
+  stellar: { family: 'stellar', nativeSymbol: 'XLM', nativeDecimals: 7, defaultDecimals: 7, cctp: true },
+  ethereum: { family: 'evm', nativeSymbol: 'ETH', nativeDecimals: 18, defaultDecimals: 18, cctp: true },
+  arbitrum: { family: 'evm', nativeSymbol: 'ETH', nativeDecimals: 18, defaultDecimals: 18, cctp: true },
+  base: { family: 'evm', nativeSymbol: 'ETH', nativeDecimals: 18, defaultDecimals: 18, cctp: true },
+  optimism: { family: 'evm', nativeSymbol: 'ETH', nativeDecimals: 18, defaultDecimals: 18, cctp: true },
+  polygon: { family: 'evm', nativeSymbol: 'POL', nativeDecimals: 18, defaultDecimals: 18, cctp: true },
+  bnb: { family: 'evm', nativeSymbol: 'BNB', nativeDecimals: 18, defaultDecimals: 18, cctp: false },
+  avalanche: { family: 'evm', nativeSymbol: 'AVAX', nativeDecimals: 18, defaultDecimals: 18, cctp: true },
+  bitcoin: { family: 'bitcoin', nativeSymbol: 'BTC', nativeDecimals: 8, defaultDecimals: 8, cctp: false },
+  litecoin: { family: 'bitcoin', nativeSymbol: 'LTC', nativeDecimals: 8, defaultDecimals: 8, cctp: false },
+  dogecoin: { family: 'bitcoin', nativeSymbol: 'DOGE', nativeDecimals: 8, defaultDecimals: 8, cctp: false },
+  'bitcoin-cash': { family: 'bitcoin', nativeSymbol: 'BCH', nativeDecimals: 8, defaultDecimals: 8, cctp: false },
+  zcash: { family: 'bitcoin', nativeSymbol: 'ZEC', nativeDecimals: 8, defaultDecimals: 8, cctp: false },
+  solana: { family: 'solana', nativeSymbol: 'SOL', nativeDecimals: 9, defaultDecimals: 9, cctp: true },
+  near: { family: 'near', nativeSymbol: 'NEAR', nativeDecimals: 24, defaultDecimals: 24, cctp: false },
+  xrp: { family: 'xrp', nativeSymbol: 'XRP', nativeDecimals: 6, defaultDecimals: 6, cctp: false },
+  tron: { family: 'tron', nativeSymbol: 'TRX', nativeDecimals: 6, defaultDecimals: 6, cctp: false },
+  ton: { family: 'ton', nativeSymbol: 'TON', nativeDecimals: 9, defaultDecimals: 9, cctp: false },
+});
+
+const STABLE_SYMBOLS = new Set(['USDC', 'USDT', 'DAI', 'RLUSD', 'EURC']);
+
+function catalogEntry(chain, symbol, decimals, issuer = null) {
+  return {
+    assetId: issuer ? `${chain}:${symbol}:${issuer}` : `${chain}:${symbol}`,
+    symbol,
+    chain: `${chain}-testnet`,
+    chainId: chain,
+    decimals,
+  };
+}
+
 export const TOKEN_CATALOG = Object.freeze([
-  { assetId: 'stellar:XLM', symbol: 'XLM', chain: 'stellar-testnet', decimals: 7 },
-  {
-    assetId: 'stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
-    symbol: 'USDC',
-    chain: 'stellar-testnet',
-    decimals: 7,
-  },
-  { assetId: 'polygon:USDC', symbol: 'USDC', chain: 'polygon-testnet', decimals: 6 },
+  catalogEntry('stellar', 'XLM', 7),
+  catalogEntry('stellar', 'USDC', 7, 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'),
+  catalogEntry('ethereum', 'ETH', 18),
+  catalogEntry('ethereum', 'USDC', 6),
+  catalogEntry('ethereum', 'USDT', 6),
+  catalogEntry('ethereum', 'DAI', 18),
+  catalogEntry('ethereum', 'WBTC', 8),
+  catalogEntry('arbitrum', 'ETH', 18),
+  catalogEntry('arbitrum', 'USDC', 6),
+  catalogEntry('arbitrum', 'USDT', 6),
+  catalogEntry('base', 'ETH', 18),
+  catalogEntry('base', 'USDC', 6),
+  catalogEntry('optimism', 'ETH', 18),
+  catalogEntry('optimism', 'USDC', 6),
+  catalogEntry('polygon', 'POL', 18),
+  catalogEntry('polygon', 'USDC', 6),
+  catalogEntry('polygon', 'USDT', 6),
+  catalogEntry('bnb', 'BNB', 18),
+  catalogEntry('bnb', 'USDT', 18),
+  catalogEntry('bnb', 'USDC', 18),
+  catalogEntry('avalanche', 'AVAX', 18),
+  catalogEntry('avalanche', 'USDC', 6),
+  catalogEntry('bitcoin', 'BTC', 8),
+  catalogEntry('litecoin', 'LTC', 8),
+  catalogEntry('dogecoin', 'DOGE', 8),
+  catalogEntry('bitcoin-cash', 'BCH', 8),
+  catalogEntry('zcash', 'ZEC', 8),
+  catalogEntry('solana', 'SOL', 9),
+  catalogEntry('solana', 'USDC', 6),
+  catalogEntry('solana', 'USDT', 6),
+  catalogEntry('near', 'NEAR', 24),
+  catalogEntry('near', 'USDC', 6),
+  catalogEntry('xrp', 'XRP', 6),
+  catalogEntry('xrp', 'RLUSD', 6),
+  catalogEntry('tron', 'TRX', 6),
+  catalogEntry('tron', 'USDT', 6),
+  catalogEntry('ton', 'TON', 9),
+  catalogEntry('ton', 'USDT', 6),
 ]);
 
-const STABLE_SYMBOLS = new Set(['USDC', 'USDT']);
+// Testnet reference prices in USD, used by the sandbox solver to
+// price cross-asset pairs. Production pricing comes from live
+// solver quotes, never from this table.
+const REFERENCE_PRICES_USD = {
+  BTC: '97000', WBTC: '97000', ETH: '3400', SOL: '210', XLM: '0.12',
+  XRP: '2.4', TRX: '0.27', TON: '5.2', NEAR: '5', BNB: '680',
+  AVAX: '38', POL: '0.45', LTC: '105', DOGE: '0.32', BCH: '460',
+  ZEC: '45', USDC: '1', USDT: '1', DAI: '1', RLUSD: '1', EURC: '1.08',
+};
 
-// Testnet solver rates as rationals: output per 1 whole input unit.
-const RATES = new Map([
-  ['stellar:XLM->stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5', { num: 12n, den: 100n }],
-  ['stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5->stellar:XLM', { num: 82n, den: 10n }],
-  ['stellar:USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5->polygon:USDC', { num: 999n, den: 1000n }],
-]);
+function priceRational(symbol) {
+  const raw = REFERENCE_PRICES_USD[symbol];
+  if (!raw) return null;
+  const [whole, fraction = ''] = raw.split('.');
+  const scale = 10n ** BigInt(fraction.length);
+  return { num: BigInt(whole) * scale + BigInt(fraction || '0'), den: scale };
+}
 
-const SOLVER_ID = 'oruva-solver';
+export function resolveAsset(assetId) {
+  const known = TOKEN_CATALOG.find((entry) => entry.assetId === assetId);
+  if (known) return known;
+  const match = /^([a-z0-9-]+):([A-Za-z0-9]+)(?::(.+))?$/.exec(String(assetId ?? ''));
+  if (!match || !CHAINS[match[1]]) throw new Error(`unsupported asset: ${assetId}`);
+  const chain = CHAINS[match[1]];
+  const symbol = match[2].toUpperCase();
+  const decimals = STABLE_SYMBOLS.has(symbol)
+    ? 6
+    : symbol === chain.nativeSymbol
+      ? chain.nativeDecimals
+      : chain.defaultDecimals;
+  return {
+    assetId: match[3] ? `${match[1]}:${symbol}:${match[3]}` : `${match[1]}:${symbol}`,
+    symbol,
+    chain: `${match[1]}-testnet`,
+    chainId: match[1],
+    decimals,
+    dynamic: true,
+  };
+}
+
+export function routeFor(inToken, outToken) {
+  if (inToken.chainId === 'stellar' && outToken.chainId === 'stellar') {
+    return 'oruva-testnet-solver';
+  }
+  if (
+    inToken.symbol === 'USDC'
+    && outToken.symbol === 'USDC'
+    && CHAINS[inToken.chainId]?.cctp
+    && CHAINS[outToken.chainId]?.cctp
+  ) {
+    return 'cctp-testnet-route';
+  }
+  return 'external-route-simulated';
+}
+
+function convertCross(amountIn, inToken, outToken) {
+  if (inToken.symbol === outToken.symbol) {
+    const scaled = amountIn * 999n * 10n ** BigInt(outToken.decimals);
+    return scaled / (1000n * 10n ** BigInt(inToken.decimals));
+  }
+  const priceIn = priceRational(inToken.symbol);
+  const priceOut = priceRational(outToken.symbol);
+  if (!priceIn || !priceOut) throw new Error('no solver route for this pair');
+  const scaled = amountIn * priceIn.num * priceOut.den * 10n ** BigInt(outToken.decimals);
+  return scaled / (priceIn.den * priceOut.num * 10n ** BigInt(inToken.decimals));
+}
+
+function convertInverseCross(amountOut, inToken, outToken) {
+  if (inToken.symbol === outToken.symbol) {
+    const scaled = amountOut * 1000n * 10n ** BigInt(inToken.decimals);
+    const divisor = 999n * 10n ** BigInt(outToken.decimals);
+    return (scaled + divisor - 1n) / divisor;
+  }
+  const priceIn = priceRational(inToken.symbol);
+  const priceOut = priceRational(outToken.symbol);
+  if (!priceIn || !priceOut) throw new Error('no solver route for this pair');
+  const scaled = amountOut * priceOut.num * priceIn.den * 10n ** BigInt(inToken.decimals);
+  const divisor = priceOut.den * priceIn.num * 10n ** BigInt(outToken.decimals);
+  return (scaled + divisor - 1n) / divisor;
+}
 
 function tokenOf(assetId) {
-  const token = TOKEN_CATALOG.find((entry) => entry.assetId === assetId);
-  if (!token) throw new Error(`unsupported asset: ${assetId}`);
-  return token;
+  return resolveAsset(assetId);
 }
+
+const SOLVER_ID = 'oruva-solver';
 
 function toMinor(value, field) {
   if (typeof value !== 'string' || !/^\d+$/.test(value)) {
@@ -68,16 +201,6 @@ function toMinor(value, field) {
   return BigInt(value);
 }
 
-function convert(amountIn, rate, inDecimals, outDecimals) {
-  const scaled = amountIn * rate.num * 10n ** BigInt(outDecimals);
-  return scaled / (rate.den * 10n ** BigInt(inDecimals));
-}
-
-function convertInverse(amountOut, rate, inDecimals, outDecimals) {
-  const scaled = amountOut * rate.den * 10n ** BigInt(inDecimals);
-  const divisor = rate.num * 10n ** BigInt(outDecimals);
-  return (scaled + divisor - 1n) / divisor;
-}
 
 export function createSwapApi({
   ledger = new VerifierLedger(),
@@ -94,15 +217,24 @@ export function createSwapApi({
     ledger.deposit(SOLVER_ID, token.assetId, (10n ** 15n).toString());
   }
 
+  function ensureSolverLiquidity(assetId) {
+    if (BigInt(ledger.balanceOf(SOLVER_ID, assetId)) === 0n) {
+      ledger.deposit(SOLVER_ID, assetId, (10n ** 15n).toString());
+    }
+  }
+
   relay.registerSolver({
     id: SOLVER_ID,
     quote: async (request) => {
-      const rate = RATES.get(`${request.originAsset}->${request.destinationAsset}`);
-      if (!rate) return null;
       const inToken = tokenOf(request.originAsset);
       const outToken = tokenOf(request.destinationAsset);
-      const amountOut = convert(BigInt(request.amountIn), rate, inToken.decimals, outToken.decimals);
-      return { amountOut: amountOut.toString(), feeBps: 0, route: 'oruva-testnet-solver' };
+      let amountOut;
+      try {
+        amountOut = convertCross(BigInt(request.amountIn), inToken, outToken);
+      } catch {
+        return null;
+      }
+      return { amountOut: amountOut.toString(), feeBps: 0, route: routeFor(inToken, outToken) };
     },
   });
 
@@ -157,9 +289,8 @@ export function createSwapApi({
   function settleSwap(swap, deposited) {
     const inToken = tokenOf(swap.originAsset);
     const outToken = tokenOf(swap.destinationAsset);
-    const rate = RATES.get(`${swap.originAsset}->${swap.destinationAsset}`);
     const usableIn = deposited > BigInt(swap.amountIn) ? BigInt(swap.amountIn) : deposited;
-    const grossOut = convert(usableIn, rate, inToken.decimals, outToken.decimals);
+    const grossOut = convertCross(usableIn, inToken, outToken);
     const { amountOut } = applyFees(grossOut, swap.fees);
     if (amountOut < BigInt(swap.minAmountOut)) {
       swap.status = 'REFUNDED';
@@ -202,7 +333,17 @@ export function createSwapApi({
 
   return {
     tokens() {
-      return { tokens: TOKEN_CATALOG.map((token) => ({ ...token })), network: 'stellar-testnet' };
+      return {
+        chains: Object.entries(CHAINS).map(([chainId, chain]) => ({
+          chainId,
+          family: chain.family,
+          nativeSymbol: chain.nativeSymbol,
+          cctp: chain.cctp,
+        })),
+        tokens: TOKEN_CATALOG.map((token) => ({ ...token })),
+        assetIdFormat: 'chain:SYMBOL or chain:SYMBOL:issuer; any priced symbol on a supported chain resolves dynamically',
+        network: 'stellar-testnet',
+      };
     },
 
     async quote({ ownerId, body = {} } = {}) {
@@ -216,29 +357,29 @@ export function createSwapApi({
       const amount = toMinor(body.amount, 'amount');
       if (amount === 0n) throw new Error('amount must be positive');
       const wholeCap = BigInt(maxWholeUnits) * 10n ** BigInt(inToken.decimals);
-      const rate = RATES.get(`${body.originAsset}->${body.destinationAsset}`);
-      if (!rate) throw new Error('no solver route for this pair');
+      ensureSolverLiquidity(inToken.assetId);
+      ensureSolverLiquidity(outToken.assetId);
 
       let amountIn;
       let grossOut;
       let minAmountIn;
       if (swapType === 'EXACT_INPUT') {
         amountIn = amount;
-        grossOut = convert(amountIn, rate, inToken.decimals, outToken.decimals);
+        grossOut = convertCross(amountIn, inToken, outToken);
         minAmountIn = amountIn;
       } else if (swapType === 'EXACT_OUTPUT') {
         grossOut = amount;
-        minAmountIn = convertInverse(grossOut, rate, inToken.decimals, outToken.decimals);
+        minAmountIn = convertInverseCross(grossOut, inToken, outToken);
         amountIn = (minAmountIn * BigInt(10000 + slippageTolerance)) / 10000n;
       } else if (swapType === 'FLEX_INPUT') {
         amountIn = amount;
         minAmountIn = (amountIn * BigInt(10000 - slippageTolerance)) / 10000n;
-        grossOut = convert(amountIn, rate, inToken.decimals, outToken.decimals);
+        grossOut = convertCross(amountIn, inToken, outToken);
       } else if (swapType === 'ANY_INPUT') {
         if (!allowAnyInput) throw new Error('ANY_INPUT requires partner authorization');
         amountIn = amount;
         minAmountIn = 1n;
-        grossOut = convert(amountIn, rate, inToken.decimals, outToken.decimals);
+        grossOut = convertCross(amountIn, inToken, outToken);
       } else {
         throw new Error(`unsupported swapType: ${swapType}`);
       }

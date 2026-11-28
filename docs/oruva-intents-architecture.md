@@ -65,6 +65,23 @@ custody, legal, partner and security gates in
      the signed-intent path and labelled as simulation; there is no
      private-shard settlement yet.
 
+## Supported chains and assets
+
+The catalog covers every chain family: EVM chains (Ethereum,
+Arbitrum, Base, Optimism, Polygon, BNB Chain, Avalanche), Bitcoin
+networks (BTC, LTC, DOGE, BCH, ZEC), Solana, NEAR, XRP Ledger, TRON,
+TON and Stellar, with native tokens, stablecoins and major issued
+assets listed by `GET /tester/v1/tokens`. Asset IDs use the form
+`chain:SYMBOL` or `chain:SYMBOL:issuer`; any priced symbol on a
+supported chain resolves dynamically, so new assets need no code
+change. Routes classify per pair: Stellar pairs settle through the
+Oruva solver, USDC between CCTP chains takes the CCTP route, and
+all other pairs take the external all-chain route. In the sandbox,
+external-route pricing is simulated from reference prices and
+labelled `external-route-simulated`; production shows external
+routes only with a live provider quote for the exact pair and
+amount, and USDT is never presented as native on XRPL.
+
 ## Fees
 
 Quotes itemize fees in basis points: protocol fee, platform fee

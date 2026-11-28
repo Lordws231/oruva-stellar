@@ -144,6 +144,40 @@ test('signed intent execution settles ledger balances with SEP-53', async () => 
   assert.ok(BigInt(ledger.balanceOf('user-1', USDC)) > 0n);
 });
 
+test('all-chain catalog quotes cross-chain pairs with route classification', async () => {
+  const api = createSwapApi();
+  const catalog = api.tokens();
+  assert.ok(catalog.tokens.length >= 30);
+  assert.ok(catalog.chains.length >= 15);
+
+  const btcQuote = await api.quote({
+    ownerId: 'dev-4',
+    body: { dry: true, originAsset: 'bitcoin:BTC', destinationAsset: 'ethereum:USDC', amount: '100000' },
+  });
+  assert.ok(BigInt(btcQuote.amountOut) > 0n);
+  assert.equal(btcQuote.route, 'external-route-simulated');
+
+  const cctpQuote = await api.quote({
+    ownerId: 'dev-4',
+    body: { dry: true, originAsset: USDC, destinationAsset: 'base:USDC', amount: '50000000' },
+  });
+  assert.equal(cctpQuote.route, 'cctp-testnet-route');
+
+  const dynamicQuote = await api.quote({
+    ownerId: 'dev-4',
+    body: { dry: true, originAsset: 'arbitrum:DAI', destinationAsset: 'solana:SOL', amount: '5000000' },
+  });
+  assert.ok(BigInt(dynamicQuote.amountOut) > 0n);
+
+  await assert.rejects(
+    api.quote({
+      ownerId: 'dev-4',
+      body: { dry: true, originAsset: 'ethereum:UNKNOWNCOIN', destinationAsset: 'ethereum:USDC', amount: '1000' },
+    }),
+    /no solver route/,
+  );
+});
+
 test('limit order partial fill then cancel refunds the remainder', () => {
   const api = createSwapApi();
   const order = api.createOrder({

@@ -91,10 +91,13 @@ export {
   createSolverRelay,
 } from './relay.js';
 export {
+  CHAINS,
   ORDER_STATUSES,
   SWAP_STATUSES,
   TOKEN_CATALOG,
   createSwapApi,
+  resolveAsset,
+  routeFor,
 } from './swapApi.js';
 export {
   MAINNET_GATE_FLAGS,
