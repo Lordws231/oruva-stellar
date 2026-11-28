@@ -340,7 +340,10 @@ export function createSwapApi({
           nativeSymbol: chain.nativeSymbol,
           cctp: chain.cctp,
         })),
-        tokens: TOKEN_CATALOG.map((token) => ({ ...token })),
+        tokens: TOKEN_CATALOG.map((token) => ({
+          ...token,
+          priceUsd: REFERENCE_PRICES_USD[token.symbol] ?? null,
+        })),
         assetIdFormat: 'chain:SYMBOL or chain:SYMBOL:issuer; any priced symbol on a supported chain resolves dynamically',
         network: 'stellar-testnet',
       };

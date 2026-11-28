@@ -72,6 +72,10 @@ export function createTesterHttpServer({
         await servePage(response, 'docs.html');
         return;
       }
+      if (method === 'GET' && path === '/wallet') {
+        await servePage(response, 'wallet.html');
+        return;
+      }
       if (method === 'GET' && (path === '/register' || path === '/signin')) {
         await servePage(response, 'index.html');
         return;

@@ -32,6 +32,12 @@ test('tester server serves health, dashboard and docs', async () => {
     const signin = await fetch(`${base}/signin`).then((r) => r.text());
     assert.match(signin, /Welcome back/);
 
+    const wallet = await fetch(`${base}/wallet`).then((r) => r.text());
+    assert.match(wallet, /Send, receive and swap tokens/);
+    assert.match(wallet, /Total balance/);
+    assert.match(wallet, /Universal|Send any token/);
+    assert.equal(wallet.includes('—'), false);
+
     const terms = await fetch(`${base}/terms.html`).then((r) => r.text());
     assert.match(terms, /Tester Terms and Policy/);
 
