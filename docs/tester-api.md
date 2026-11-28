@@ -11,9 +11,13 @@ The Tester API lets other developers use and test Oruva Intents on Stellar testn
 - A reset endpoint that clears your own sandbox records.
 - Rate limits: 60 requests per minute per key, and 5 key issuances per hour per label.
 
+## Registration and master credentials
+
+Access requires registration. `POST /tester/v1/register` with name, email and `acceptTerms: true` creates your account and issues your credentials: a Master ID (`oruva-dev-...`), your Master Key (shown once, stored hashed), and the Master URL `https://intents.oruva.com.ng/tester`. Oruva issues all three; you never invent them. `POST /tester/v1/signin` with your Master ID and Master Key signs you back in. The dashboard stays locked until you register or sign in.
+
 ## Authentication
 
-Send your sandbox key on every call except health and key issuance:
+Send your Master Key on every call except health, registration and sign-in:
 
 ```http
 x-api-key: oruva_test_...

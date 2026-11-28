@@ -72,8 +72,20 @@ export function createTesterHttpServer({
         await servePage(response, 'docs.html');
         return;
       }
+      if (method === 'GET' && path === '/terms.html') {
+        await servePage(response, 'terms.html');
+        return;
+      }
       if (method === 'GET' && path === '/tester/v1/health') {
         sendJson(response, 200, api.health());
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/register') {
+        sendJson(response, 201, api.register({ body: await readJsonBody(request) }));
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/signin') {
+        sendJson(response, 200, api.signIn({ body: await readJsonBody(request) }));
         return;
       }
       if (method === 'POST' && path === '/tester/v1/keys') {

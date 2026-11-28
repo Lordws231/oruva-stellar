@@ -91,6 +91,35 @@ test('tester records are isolated per key and live keys are rejected', async () 
   );
 });
 
+test('registration requires terms and issues master credentials', async () => {
+  const api = createTesterApi();
+  assert.throws(
+    () => api.register({ body: { name: 'Dev One', email: 'dev@example.com', acceptTerms: false } }),
+    /terms acceptance/,
+  );
+  const account = api.register({
+    body: { name: 'Dev One', email: 'Dev@Example.com', acceptTerms: true },
+  });
+  assert.ok(account.masterId.startsWith('oruva-dev-'));
+  assert.equal(account.masterUrl, 'https://intents.oruva.com.ng/tester');
+  assert.ok(account.masterKey.startsWith('oruva_test_'));
+  assert.throws(
+    () => api.register({ body: { name: 'Dev One', email: 'dev@example.com', acceptTerms: true } }),
+    /already registered/,
+  );
+
+  const signedIn = api.signIn({ body: { masterId: account.masterId, masterKey: account.masterKey } });
+  assert.equal(signedIn.ok, true);
+  assert.equal(signedIn.email, 'dev@example.com');
+  assert.throws(
+    () => api.signIn({ body: { masterId: account.masterId, masterKey: 'oruva_test_wrong' } }),
+    /invalid master credentials/,
+  );
+
+  const quote = await api.quote({ ...keyed(account.masterKey), body: testerRequest });
+  assert.equal(quote.status, 'quoted');
+});
+
 test('tester refund after deadline and sandbox reset', async () => {
   const api = createTesterApi();
   const issued = api.issueTesterKey({ body: { label: 'dev-three' } });

@@ -73,9 +73,13 @@
     margin: 0;
   }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  body.locked .platform-section { display: none; }
+  body:not(.locked) #gateSection { display: none; }
+  .checkrow { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; }
+  .checkrow input { width: auto; margin-top: 3px; }
 </style>
 </head>
-<body>
+<body class="locked">
 <main>
   <h1>Oruva Intents Developer Dashboard</h1>
   <p>Test the quote, submit, status and refund API contracts from your browser. New here? Read the <a href="docs.html">tester docs and quickstart</a>.</p>
@@ -87,26 +91,70 @@
     is claimed until partner and licensing gates clear.
   </div>
 
-  <section aria-labelledby="connectionHeading">
-    <h2 id="connectionHeading">Connection</h2>
+
+  <section id="gateSection" aria-labelledby="gateHeading">
+    <h2 id="gateHeading">Register or sign in</h2>
+    <p>Access to the Oruva Intents tester platform requires an account. Registration issues your Master ID and Master Key. The Master URL is <code>https://intents.oruva.com.ng/tester</code>.</p>
     <div class="grid">
       <div>
-        <label for="apiBase">API base URL</label>
-        <input id="apiBase" type="url" placeholder="https://api.example.test" autocomplete="off">
-        <p class="hint">Paths such as <code>/v1/intents/quote</code> are added to this base. For the Tester API, use your tester host plus <code>/tester</code> and keep amounts at 10 or below.</p>
+        <label for="regName">Full name</label>
+        <input id="regName" type="text" autocomplete="name">
       </div>
       <div>
-        <label for="apiKey">Sandbox API key</label>
-        <input id="apiKey" type="password" placeholder="oruva_test_..." autocomplete="off">
-        <p class="hint">The key stays in this page memory only. This page never saves it.</p>
+        <label for="regEmail">Email</label>
+        <input id="regEmail" type="email" autocomplete="email">
+      </div>
+    </div>
+    <div class="checkrow">
+      <input id="acceptTerms" type="checkbox">
+      <label for="acceptTerms">I accept the <a href="terms.html" target="_blank" rel="noopener">Oruva Intents Tester Terms and Policy</a>, including testnet-only use with no real funds.</label>
+    </div>
+    <div class="actions">
+      <button type="button" id="registerButton">Register and get my Master Key</button>
+    </div>
+    <h2 style="margin-top:20px">Already registered?</h2>
+    <div class="grid">
+      <div>
+        <label for="signInMasterId">Master ID</label>
+        <input id="signInMasterId" type="text" placeholder="oruva-dev-..." autocomplete="off">
+      </div>
+      <div>
+        <label for="signInMasterKey">Master Key</label>
+        <input id="signInMasterKey" type="password" placeholder="oruva_test_..." autocomplete="off">
       </div>
     </div>
     <div class="actions">
-      <button type="button" id="clearKey" class="secondary">Clear API key</button>
+      <button type="button" id="signInButton" class="secondary">Sign in</button>
+    </div>
+    <p class="hint">Your Master Key is issued by Oruva at registration and shown once. Keep it secret; it signs in as your account.</p>
+  </section>
+
+  <section class="platform-section" aria-labelledby="connectionHeading">
+    <h2 id="connectionHeading">Connection</h2>
+    <div class="grid">
+      <div>
+        <label for="apiBase">Master URL (API base)</label>
+        <input id="apiBase" type="url" readonly autocomplete="off">
+        <p class="hint">Issued by Oruva. Paths such as <code>/v1/intents/quote</code> are added to this base. Sandbox amounts stay at 10 or below.</p>
+      </div>
+      <div>
+        <label for="masterId">Master ID</label>
+        <input id="masterId" type="text" readonly autocomplete="off">
+        <p class="hint">Your developer account ID, issued at registration.</p>
+      </div>
+      <div>
+        <label for="apiKey">Master Key (sandbox API key)</label>
+        <input id="apiKey" type="password" placeholder="oruva_test_..." autocomplete="off">
+        <p class="hint">Issued by Oruva at registration. Kept in this tab session only.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="clearKey" class="secondary">Clear Master Key</button>
+      <button type="button" id="signOutButton" class="secondary">Sign out</button>
     </div>
   </section>
 
-  <section aria-labelledby="quoteHeading">
+  <section class="platform-section" aria-labelledby="quoteHeading">
     <h2 id="quoteHeading">Request a quote</h2>
     <p>Sends <code>POST /v1/intents/quote</code> with the intent request fields below.</p>
     <div class="grid">
@@ -137,7 +185,7 @@
       </div>
       <div>
         <label for="inputAmount">Input amount</label>
-        <input id="inputAmount" type="number" value="100" min="0" step="any">
+        <input id="inputAmount" type="number" value="5" min="0" step="any">
       </div>
       <div>
         <label for="outputAsset">Output asset</label>
@@ -149,7 +197,7 @@
       </div>
       <div>
         <label for="minOutputAmount">Minimum output amount</label>
-        <input id="minOutputAmount" type="number" value="95" min="0" step="any">
+        <input id="minOutputAmount" type="number" value="4" min="0" step="any">
       </div>
       <div>
         <label for="recipient">Recipient</label>
@@ -169,7 +217,7 @@
     </div>
   </section>
 
-  <section aria-labelledby="intentHeading">
+  <section class="platform-section" aria-labelledby="intentHeading">
     <h2 id="intentHeading">Submit, status and refund</h2>
     <p>
       Submit sends <code>POST /v1/intents/submit</code>. Status sends
@@ -198,7 +246,7 @@
     </div>
   </section>
 
-  <section aria-labelledby="resultsHeading">
+  <section class="platform-section" aria-labelledby="resultsHeading">
     <h2 id="resultsHeading">Results</h2>
     <p id="statusLine">No request sent yet.</p>
     <pre id="results" aria-live="polite">{}</pre>
@@ -298,6 +346,98 @@
       });
     }
   }
+
+
+  var SESSION_KEY = 'oruvaIntentsSession';
+
+  function masterUrl() {
+    return window.location.origin + '/tester';
+  }
+
+  function unlock(session, message) {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    document.body.classList.remove('locked');
+    document.getElementById('apiBase').value = session.masterUrl || masterUrl();
+    document.getElementById('masterId').value = session.masterId || '';
+    document.getElementById('apiKey').value = session.masterKey || '';
+    show(message, { masterId: session.masterId, masterUrl: session.masterUrl || masterUrl() });
+  }
+
+  function lock(message) {
+    sessionStorage.removeItem(SESSION_KEY);
+    document.body.classList.add('locked');
+    document.getElementById('apiKey').value = '';
+    show(message, {});
+  }
+
+  function gateCall(path, body, label) {
+    setBusy(true);
+    return fetch(masterUrl() + path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (response) {
+      return response.text().then(function (text) {
+        var parsed;
+        try { parsed = text ? JSON.parse(text) : {}; } catch (e) { parsed = { rawResponse: text }; }
+        if (!response.ok) throw new Error(parsed.error || (label + ' failed with HTTP ' + response.status));
+        return parsed;
+      });
+    }).then(function (parsed) {
+      setBusy(false);
+      return parsed;
+    }).catch(function (error) {
+      setBusy(false);
+      show(label + ' failed.', { error: String(error && error.message ? error.message : error) });
+      return null;
+    });
+  }
+
+  document.getElementById('registerButton').addEventListener('click', function () {
+    if (!document.getElementById('acceptTerms').checked) {
+      show('Registration was not sent.', { error: 'Accept the Oruva Intents Tester Terms and Policy first.' });
+      return;
+    }
+    gateCall('/v1/register', {
+      name: field('regName'),
+      email: field('regEmail'),
+      acceptTerms: true
+    }, 'Registration').then(function (account) {
+      if (!account) return;
+      unlock(
+        { masterId: account.masterId, masterKey: account.masterKey, masterUrl: account.masterUrl },
+        'Registered. Save your Master Key now; it is shown once.'
+      );
+    });
+  });
+
+  document.getElementById('signInButton').addEventListener('click', function () {
+    var masterId = field('signInMasterId');
+    var masterKey = document.getElementById('signInMasterKey').value;
+    gateCall('/v1/signin', { masterId: masterId, masterKey: masterKey }, 'Sign in').then(function (account) {
+      if (!account) return;
+      unlock(
+        { masterId: account.masterId, masterKey: masterKey, masterUrl: account.masterUrl },
+        'Signed in as ' + account.masterId + '.'
+      );
+    });
+  });
+
+  document.getElementById('signOutButton').addEventListener('click', function () {
+    lock('Signed out. Register or sign in to use the platform.');
+  });
+
+  (function restoreSession() {
+    document.getElementById('apiBase').value = masterUrl();
+    try {
+      var saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      if (saved && saved.masterId && saved.masterKey) {
+        unlock(saved, 'Signed in as ' + saved.masterId + '.');
+      }
+    } catch (error) {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  })();
 
   document.getElementById('clearKey').addEventListener('click', function () {
     document.getElementById('apiKey').value = '';

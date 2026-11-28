@@ -7,6 +7,7 @@
 // record is isolated per API key. Settlement here is simulated:
 // no real funds move and no mainnet path exists in this module.
 
+import { randomUUID } from 'node:crypto';
 import { API_KEY_SCOPES, ApiKeyStore } from './apiKeys.js';
 import {
   ApiKeyRateLimiter,
@@ -17,9 +18,12 @@ import {
 
 export const TESTER_NETWORK = 'stellar-testnet';
 export const TESTER_DEFAULT_MAX_INPUT_AMOUNT = 10;
+export const MASTER_URL = 'https://intents.oruva.com.ng/tester';
 
 export const TESTER_API_ROUTES = Object.freeze([
   'GET /tester/v1/health',
+  'POST /tester/v1/register',
+  'POST /tester/v1/signin',
   'POST /tester/v1/keys',
   'POST /tester/v1/intents/quote',
   'POST /tester/v1/intents/submit',
@@ -64,6 +68,26 @@ export function createTesterApi({
 } = {}) {
   const quoteOwners = new Map();
   const intentOwners = new Map();
+  const accounts = new Map();
+  const accountsByEmail = new Map();
+
+  function requireEmail(email) {
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      throw new Error('a valid email is required');
+    }
+    return email.trim().toLowerCase();
+  }
+
+  function publicAccount(account) {
+    return {
+      masterId: account.masterId,
+      masterUrl: MASTER_URL,
+      name: account.name,
+      email: account.email,
+      createdAt: account.createdAt,
+      termsAcceptedAt: account.termsAcceptedAt,
+    };
+  }
 
   function authorize(headers, scope) {
     const verified = apiKeyStore.assertKey(apiKeyFrom(headers), scope, {
@@ -88,9 +112,59 @@ export function createTesterApi({
         network: TESTER_NETWORK,
         mode: 'sandbox',
         liveMoney: false,
+        masterUrl: MASTER_URL,
         maxInputAmount,
         routes: [...TESTER_API_ROUTES],
       };
+    },
+
+    register({ body = {} } = {}) {
+      const name = requireLabel(body.name);
+      const email = requireEmail(body.email);
+      if (body.acceptTerms !== true) {
+        throw new Error('terms acceptance is required');
+      }
+      if (accountsByEmail.has(email)) {
+        throw new Error('email already registered, sign in instead');
+      }
+      keyIssueLimiter.check(`tester-register:${email}`);
+      const { rawKey, record } = apiKeyStore.issueKey({
+        scopes: [...TESTER_SCOPES],
+        sandbox: true,
+        label: email,
+      });
+      const now = new Date().toISOString();
+      const account = {
+        masterId: `oruva-dev-${randomUUID()}`,
+        name,
+        email,
+        keyId: record.id,
+        createdAt: now,
+        termsAcceptedAt: now,
+      };
+      accounts.set(account.masterId, account);
+      accountsByEmail.set(email, account.masterId);
+      return {
+        ...publicAccount(account),
+        masterKey: rawKey,
+        limits: {
+          network: TESTER_NETWORK,
+          liveMoney: false,
+          maxInputAmount,
+        },
+      };
+    },
+
+    signIn({ body = {} } = {}) {
+      const account = accounts.get(body.masterId);
+      const rawKey = body.masterKey ?? body.apiKey;
+      const verified = account
+        ? apiKeyStore.verifyKey(rawKey, null, { requireSandbox: true })
+        : { ok: false };
+      if (!account || !verified.ok || verified.keyId !== account.keyId) {
+        throw new Error('invalid master credentials');
+      }
+      return { ok: true, ...publicAccount(account) };
     },
 
     issueTesterKey({ body = {} } = {}) {

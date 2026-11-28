@@ -21,6 +21,11 @@ test('tester server serves health, dashboard and docs', async () => {
 
     const home = await fetch(`${base}/`).then((r) => r.text());
     assert.match(home, /Developer Dashboard/);
+    assert.match(home, /Register or sign in/);
+    assert.match(home, /Master Key/);
+
+    const terms = await fetch(`${base}/terms.html`).then((r) => r.text());
+    assert.match(terms, /Tester Terms and Policy/);
 
     const docs = await fetch(`${base}/docs.html`).then((r) => r.text());
     assert.match(docs, /Tester Docs/);
@@ -32,13 +37,29 @@ test('tester server serves health, dashboard and docs', async () => {
 
 test('tester server runs the full sandbox flow over HTTP', async () => {
   await withServer(async (base) => {
-    const issued = await fetch(`${base}/tester/v1/keys`, {
+    const rejected = await fetch(`${base}/tester/v1/register`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ label: 'http-dev' }),
+      body: JSON.stringify({ name: 'Http Dev', email: 'http@example.com', acceptTerms: false }),
+    });
+    assert.equal(rejected.status, 400);
+
+    const account = await fetch(`${base}/tester/v1/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Http Dev', email: 'http@example.com', acceptTerms: true }),
     }).then((r) => r.json());
-    assert.ok(issued.apiKey.startsWith('oruva_test_'));
-    const headers = { 'content-type': 'application/json', 'x-api-key': issued.apiKey };
+    assert.ok(account.masterId.startsWith('oruva-dev-'));
+    assert.ok(account.masterKey.startsWith('oruva_test_'));
+
+    const signedIn = await fetch(`${base}/tester/v1/signin`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ masterId: account.masterId, masterKey: account.masterKey }),
+    }).then((r) => r.json());
+    assert.equal(signedIn.ok, true);
+
+    const headers = { 'content-type': 'application/json', 'x-api-key': account.masterKey };
 
     const quote = await fetch(`${base}/tester/v1/intents/quote`, {
       method: 'POST',
