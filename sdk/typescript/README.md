@@ -1,6 +1,6 @@
-# Oruva Stellar Intents TypeScript SDK
+# Oruva Intents TypeScript SDK
 
-Client for the Oruva Stellar Intents testnet API contracts: quote, submit, status and
+Client for the Oruva Intents testnet API contracts: quote, submit, status and
 refund. This phase covers testnet and simulated or quote gated routes only. It does not
 claim live fiat payout.
 

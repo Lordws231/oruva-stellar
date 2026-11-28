@@ -1,1 +1,1 @@
-{"description":"TypeScript SDK skeleton for Oruva Stellar Intents testnet API contracts.","name":"@oruva/stellar-intents-sdk","private":true,"scripts":{"check":"node --check src/index.ts && node --check test/client.test.mjs","test":"node --test"},"type":"module","version":"0.1.0"}
+{"description":"TypeScript SDK skeleton for Oruva Intents testnet API contracts.","name":"@oruva/stellar-intents-sdk","private":true,"scripts":{"check":"node --check src/index.ts && node --check test/client.test.mjs","test":"node --test"},"type":"module","version":"0.1.0"}

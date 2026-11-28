@@ -1,4 +1,4 @@
-//! Oruva Stellar Intents (Soroban), testnet MVP.
+//! Oruva Intents (Soroban), testnet MVP.
 //!
 //! A user locks an input asset with a signed intent: single-use intent
 //! hash, minimum output, output asset/chain/recipient binding, deadline,

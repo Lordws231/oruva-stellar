@@ -1,4 +1,4 @@
-// Oruva Stellar Intents sandbox API keys (testnet MVP).
+// Oruva Intents sandbox API keys (testnet MVP).
 //
 // Issues scoped API keys for testnet sandbox use. Only a SHA-256 hash
 // of each key is stored, together with metadata: id, scopes, sandbox

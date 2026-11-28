@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Oruva Stellar Intents testnet demo.
+# Oruva Intents testnet demo.
 # Deploys oruva-intents, settles one Stellar USDC intent through a
 # registered solver, then refunds a second intent after its deadline.
 # Testnet only. Prints contract ID and transaction hashes.

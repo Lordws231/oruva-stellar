@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the Oruva Stellar Intents contract to testnet or mainnet.
+# Deploy the Oruva Intents contract to testnet or mainnet.
 #
 # The same contract code and deploy steps run on both networks.
 # Only configuration changes. Testnet is the default. Mainnet

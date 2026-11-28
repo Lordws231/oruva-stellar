@@ -1,4 +1,4 @@
-// Oruva Stellar Intents TypeScript SDK skeleton.
+// Oruva Intents TypeScript SDK skeleton.
 //
 // Testnet and simulated routes only in this phase. The SDK talks to
 // the public quote, submit, status and refund API contracts. It does
@@ -86,7 +86,7 @@ export class OruvaApiError extends Error {
   body: unknown;
 
   constructor(status: number, body: unknown) {
-    super(`Oruva Stellar Intents API error ${status}`);
+    super(`Oruva Intents API error ${status}`);
     this.name = 'OruvaApiError';
     this.status = status;
     this.body = body;

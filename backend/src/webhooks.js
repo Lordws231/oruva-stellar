@@ -1,4 +1,4 @@
-// Webhook delivery queue for Oruva Stellar Intents.
+// Webhook delivery queue for Oruva Intents.
 //
 // Payloads are signed with HMAC SHA-256 using an injected secret
 // provider. Transport is injected so delivery tests run offline. The

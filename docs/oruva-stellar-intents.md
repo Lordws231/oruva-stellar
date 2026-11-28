@@ -1,4 +1,4 @@
-# Oruva Stellar Intents
+# Oruva Intents
 
 Status: testnet MVP built and verified Nov 27, 2026; code gaps
 finished and verified Nov 28, 2026 (solver bond escrow and slashing,
@@ -6,7 +6,7 @@ SEP-53 signing and fee-bump sponsorship, cross-chain delivery proof
 verification, sandbox API keys and developer dashboard). No mainnet
 deployment. No live fiat payout is claimed.
 
-Oruva Stellar Intents is Oruva's Stellar-native intents service,
+Oruva Intents is Oruva's Stellar-native intents service,
 modelled on the intent pattern behind NEAR Intents and 1Click, but
 settled on Stellar. It is a public developer platform: other builders
 can use it in their own products through an API and SDK. Mobility fare
@@ -176,7 +176,7 @@ Tests Nov 28, 2026: contract host tests 21 passed, backend tests
 
 ## Tester API and sandbox
 
-Other developers can use and test Stellar Intents on testnet through
+Other developers can use and test Oruva Intents on testnet through
 the Tester API: self-issued sandbox keys, capped test amounts,
 per-key isolation, simulated fills and a sandbox reset. No real
 funds move and live keys are rejected. See `docs/tester-api.md`.

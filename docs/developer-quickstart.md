@@ -1,4 +1,4 @@
-# Stellar Intents Developer Quickstart
+# Oruva Intents Developer Quickstart
 
 Five minutes from zero to a settled testnet intent in the sandbox. Everything here is testnet and simulated: no real funds move.
 

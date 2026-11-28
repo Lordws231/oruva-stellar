@@ -408,7 +408,7 @@ change was needed.
    the CCTP wrapper contract is testnet-proven on the Polygon route
    (see `docs/cctp-wrapper-evidence.md`). The wiring design is in
    `docs/platform-wiring-spec.md`.
-3. **Stellar Intents completion.** Solver bond escrow and slashing,
+3. **Oruva Intents completion.** Solver bond escrow and slashing,
    SEP-53 signing with fee-bump sponsorship, cross-chain delivery
    proof verification, sandbox API keys and the developer dashboard
    are built and testnet-verified (see

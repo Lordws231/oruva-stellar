@@ -1,7 +1,7 @@
-// Oruva Stellar Intents Tester API and sandbox.
+// Oruva Intents Tester API and sandbox.
 //
 // A testnet-only surface that lets other developers use and test
-// Stellar Intents without touching live money. Developers issue
+// Oruva Intents without touching live money. Developers issue
 // their own sandbox keys, run capped quote, submit, status, refund
 // and simulated-fill flows, and reset their sandbox state. Every
 // record is isolated per API key. Settlement here is simulated:

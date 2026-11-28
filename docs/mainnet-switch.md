@@ -1,6 +1,6 @@
 # Testnet to Mainnet Switch Runbook
 
-Stellar Intents runs the same contract code and backend paths on testnet and mainnet. The switch changes configuration only: network passphrase, Horizon and Soroban RPC endpoints, asset issuers, explorer base and contract IDs. `backend/src/network.js` is the single source of that configuration, and testnet is the default.
+Oruva Intents runs the same contract code and backend paths on testnet and mainnet. The switch changes configuration only: network passphrase, Horizon and Soroban RPC endpoints, asset issuers, explorer base and contract IDs. `backend/src/network.js` is the single source of that configuration, and testnet is the default.
 
 ## Parity rules
 

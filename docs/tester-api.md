@@ -1,6 +1,6 @@
-# Oruva Stellar Intents Tester API and Sandbox
+# Oruva Intents Tester API and Sandbox
 
-The Tester API lets other developers use and test Oruva Stellar Intents on Stellar testnet. It is a sandbox: no real funds move, no mainnet path exists, and fiat payout is not supported. New here? Start with the five minute guide in `docs/developer-quickstart.md`.
+The Tester API lets other developers use and test Oruva Intents on Stellar testnet. It is a sandbox: no real funds move, no mainnet path exists, and fiat payout is not supported. New here? Start with the five minute guide in `docs/developer-quickstart.md`.
 
 ## What a tester gets
 

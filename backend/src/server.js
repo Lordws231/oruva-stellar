@@ -1,4 +1,4 @@
-// HTTP server for the Oruva Stellar Intents Tester API.
+// HTTP server for the Oruva Intents Tester API.
 //
 // Serves the testnet sandbox API plus the developer dashboard and
 // docs pages, so one public subdomain can host everything external
@@ -129,6 +129,6 @@ const isMain = process.argv[1]
 if (isMain) {
   const port = Number(process.env.PORT ?? 8787);
   createTesterHttpServer().listen(port, () => {
-    console.log(`Oruva Stellar Intents tester server listening on port ${port}`);
+    console.log(`Oruva Intents tester server listening on port ${port}`);
   });
 }

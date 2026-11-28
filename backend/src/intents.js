@@ -1,4 +1,4 @@
-// Oruva Stellar Intents backend skeleton (testnet MVP).
+// Oruva Intents backend skeleton (testnet MVP).
 //
 // Public developer platform surface: quote, submit, status and refund
 // flows with idempotency keys, solver bids, route adapters and evidence
