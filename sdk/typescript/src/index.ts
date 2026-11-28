@@ -69,6 +69,18 @@ export interface ClientOptions {
   idempotencyKeyFactory?: () => string;
 }
 
+export const TESTER_API_BASE_PATH = '/tester';
+
+export function createTesterClient(options: ClientOptions): OruvaStellarIntentsClient {
+  const baseUrl = options.baseUrl.replace(/\/$/, '');
+  return new OruvaStellarIntentsClient({
+    ...options,
+    baseUrl: baseUrl.endsWith(TESTER_API_BASE_PATH)
+      ? baseUrl
+      : `${baseUrl}${TESTER_API_BASE_PATH}`,
+  });
+}
+
 export class OruvaApiError extends Error {
   status: number;
   body: unknown;
@@ -128,6 +140,20 @@ export class OruvaStellarIntentsClient {
 
   async refund(intentId: string): Promise<IntentRecord> {
     return this.request<IntentRecord>(`/v1/intents/${encodeURIComponent(intentId)}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async simulateFill(intentId: string): Promise<IntentRecord> {
+    return this.request<IntentRecord>(
+      `/v1/intents/${encodeURIComponent(intentId)}/simulate-fill`,
+      { method: 'POST', body: JSON.stringify({}) },
+    );
+  }
+
+  async resetSandbox(): Promise<unknown> {
+    return this.request<unknown>('/v1/reset', {
       method: 'POST',
       body: JSON.stringify({}),
     });

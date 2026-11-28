@@ -174,6 +174,13 @@ status Refunded, and the solver bond reduced from 10000000 to
 Tests Nov 28, 2026: contract host tests 21 passed, backend tests
 53 passed, SDK tests 2 passed with the offline syntax check green.
 
+## Tester API and sandbox
+
+Other developers can use and test Stellar Intents on testnet through
+the Tester API: self-issued sandbox keys, capped test amounts,
+per-key isolation, simulated fills and a sandbox reset. No real
+funds move and live keys are rejected. See `docs/tester-api.md`.
+
 ## Remaining gaps
 
 The code items are finished. What remains is external gates, stated

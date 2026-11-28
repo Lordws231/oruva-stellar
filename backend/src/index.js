@@ -73,3 +73,10 @@ export {
   revokeKey,
   verifyKey,
 } from './apiKeys.js';
+export {
+  TESTER_API_ROUTES,
+  TESTER_DEFAULT_MAX_INPUT_AMOUNT,
+  TESTER_NETWORK,
+  createSandboxIntentService,
+  createTesterApi,
+} from './testerApi.js';
