@@ -1,3 +1,5 @@
+import { STELLAR_NETWORKS } from './network.js';
+
 export async function createStellarKeypairFactory() {
   const sdk = await import('@stellar/stellar-sdk');
   return () => {
@@ -7,8 +9,12 @@ export async function createStellarKeypairFactory() {
 }
 
 export class HorizonPaymentsClient {
-  constructor(horizonUrl = 'https://horizon-testnet.stellar.org') {
+  constructor(horizonUrl = STELLAR_NETWORKS.testnet.horizonUrl) {
     this.horizonUrl = horizonUrl.replace(/\/$/, '');
+  }
+
+  static fromNetwork(config) {
+    return new HorizonPaymentsClient(config.horizonUrl);
   }
 
   async paymentsForAccount(publicKey) {
@@ -34,9 +40,13 @@ export class HorizonPaymentsClient {
 }
 
 export class HorizonPathRateProvider {
-  constructor(horizonUrl = 'https://horizon-testnet.stellar.org', usdcIssuer) {
+  constructor(horizonUrl = STELLAR_NETWORKS.testnet.horizonUrl, usdcIssuer) {
     this.horizonUrl = horizonUrl.replace(/\/$/, '');
     this.usdcIssuer = usdcIssuer;
+  }
+
+  static fromNetwork(config) {
+    return new HorizonPathRateProvider(config.horizonUrl, config.usdcIssuer);
   }
 
   async rate({ fromAsset, toAsset }) {

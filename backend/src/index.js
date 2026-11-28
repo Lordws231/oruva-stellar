@@ -80,3 +80,13 @@ export {
   createSandboxIntentService,
   createTesterApi,
 } from './testerApi.js';
+export {
+  MAINNET_GATE_FLAGS,
+  STELLAR_NETWORKS,
+  TESTNET_INTENTS_CONTRACT_ID,
+  explorerContractUrl,
+  explorerTxUrl,
+  getNetworkConfig,
+  networkEnvBlock,
+  resolveNetwork,
+} from './network.js';

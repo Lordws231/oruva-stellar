@@ -181,6 +181,15 @@ the Tester API: self-issued sandbox keys, capped test amounts,
 per-key isolation, simulated fills and a sandbox reset. No real
 funds move and live keys are rejected. See `docs/tester-api.md`.
 
+## Network parity and the mainnet switch
+
+Testnet and mainnet run the same contract code and backend paths.
+`backend/src/network.js` holds the only network differences
+(passphrase, endpoints, issuers, explorer, contract IDs), testnet
+is the default, and mainnet refuses to resolve until the
+production gates are marked cleared with founder authorization.
+The switch steps and rollback live in `docs/mainnet-switch.md`.
+
 ## Remaining gaps
 
 The code items are finished. What remains is external gates, stated
