@@ -1,0 +1,1 @@
+{"description":"Oruva Stellar Intents testnet platform and tester sandbox server.","engines":{"node":">=20"},"name":"oruva-stellar","private":true,"scripts":{"start":"node backend/src/server.js"},"version":"0.1.0"}
