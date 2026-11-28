@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oruva Stellar Intents Tester Docs</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f4f6f5; color: #14201b; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+  p, li { line-height: 1.55; }
+  .notice { background: #fff7e0; border: 1px solid #d9a400; border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+  .notice strong { display: block; margin-bottom: 4px; }
+  section { background: #ffffff; border: 1px solid #d7dedb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  pre { background: #101613; color: #d7f0e3; border-radius: 8px; padding: 12px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #d7dedb; padding: 8px; text-align: left; vertical-align: top; }
+  a { color: #0b6b4f; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Oruva Stellar Intents Tester Docs</h1>
+  <p>Use and test Stellar Intents on Stellar testnet. Back to the <a href="index.html">developer dashboard</a>.</p>
+
+  <div class="notice" role="note">
+    <strong>Sandbox and testnet only</strong>
+    No real funds move here. Amounts are capped at 10 test units per intent, settlement is
+    simulated, and fiat payout is not available. Production use stays gated on custody
+    validation, SEC/VASP legal clearance, partner approvals, an independent penetration
+    test and founder mainnet authorization.
+  </div>
+
+  <section>
+    <h2>Quickstart</h2>
+    <p>Issue a sandbox key, then run quote, submit and simulate-fill:</p>
+    <pre>curl -X POST "$BASE/tester/v1/keys" -H 'content-type: application/json' \
+  -d '{"label":"my-app"}'
+
+curl -X POST "$BASE/tester/v1/intents/quote" \
+  -H 'content-type: application/json' -H "x-api-key: $TESTER_KEY" \
+  -d '{"kind":"swap_convert","inputAsset":"USDC","inputAmount":5,"outputAsset":"USDC","outputChain":"stellar","minOutputAmount":4,"recipient":"G...","deadline":"2026-12-01T00:00:00.000Z"}'
+
+curl -X POST "$BASE/tester/v1/intents/submit" \
+  -H 'content-type: application/json' -H "x-api-key: $TESTER_KEY" \
+  -d '{"quoteId":"&lt;quoteId&gt;","idempotencyKey":"run-1"}'
+
+curl -X POST "$BASE/tester/v1/intents/&lt;intentId&gt;/simulate-fill" \
+  -H "x-api-key: $TESTER_KEY"</pre>
+    <p>In the dashboard, set the API base to your tester host plus <code>/tester</code> and paste the sandbox key.</p>
+  </section>
+
+  <section>
+    <h2>Endpoints</h2>
+    <table>
+      <tr><th>Route</th><th>Purpose</th></tr>
+      <tr><td><code>GET /tester/v1/health</code></td><td>Network, mode, caps and routes. No key required.</td></tr>
+      <tr><td><code>POST /tester/v1/keys</code></td><td>Issue a sandbox key. The raw key is shown once.</td></tr>
+      <tr><td><code>POST /tester/v1/intents/quote</code></td><td>Request a capped sandbox quote.</td></tr>
+      <tr><td><code>POST /tester/v1/intents/submit</code></td><td>Open an intent. Idempotent per key.</td></tr>
+      <tr><td><code>GET /tester/v1/intents/:intentId</code></td><td>Intent status, balances and events.</td></tr>
+      <tr><td><code>POST /tester/v1/intents/:intentId/simulate-fill</code></td><td>Simulate fill and settlement on Stellar routes.</td></tr>
+      <tr><td><code>POST /tester/v1/intents/:intentId/refund</code></td><td>Refund after the deadline passes.</td></tr>
+      <tr><td><code>POST /tester/v1/reset</code></td><td>Clear your own sandbox records.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Rules of the sandbox</h2>
+    <ul>
+      <li>Send <code>x-api-key: oruva_test_...</code> on every call except health and key issuance. Live keys are rejected.</li>
+      <li>Records are isolated per key. Another key cannot see your quotes or intents.</li>
+      <li>Lifecycle: open, then filled and settled through simulate-fill, or refunded after the deadline.</li>
+      <li>Cross-chain tester intents stop at filled until delivery proof verification.</li>
+      <li>Rate limits: 60 requests per minute per key, 5 key issuances per hour per label.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>SDK and evidence</h2>
+    <p>The TypeScript SDK offers <code>createTesterClient({ baseUrl, apiKey })</code> with quote, submit, status, refund, simulateFill and resetSandbox. Full markdown reference: <code>docs/tester-api.md</code> and <code>docs/developer-quickstart.md</code> in the repository.</p>
+    <p>Testnet bond escrow instance: <code>CAXOQEOG2UVT5DJZF76NMBIZRPPVIQOKPQTBP67OTYMV2MGED7AMJU6X</code>, with settle, refund and slash evidence in <code>docs/oruva-stellar-intents.md</code>.</p>
+  </section>
+</main>
+</body>
+</html>

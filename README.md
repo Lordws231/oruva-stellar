@@ -412,7 +412,11 @@ change was needed.
    SEP-53 signing with fee-bump sponsorship, cross-chain delivery
    proof verification, sandbox API keys and the developer dashboard
    are built and testnet-verified (see
-   `docs/oruva-stellar-intents.md`). Mainnet deployment stays gated
+   `docs/oruva-stellar-intents.md`). External developers can test on
+   testnet through the Tester API and sandbox: start with
+   `docs/developer-quickstart.md`, full reference in
+   `docs/tester-api.md`, browser docs in `dashboard/docs.html`.
+   Mainnet deployment stays gated
    on custody validation, SEC/VASP legal clearance, an independent
    penetration test and founder authorization.
 4. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
