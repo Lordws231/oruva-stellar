@@ -81,6 +81,22 @@ export {
   createTesterApi,
 } from './testerApi.js';
 export {
+  VERIFYING_CONTRACT,
+  VerifierLedger,
+  createVerifierLedger,
+} from './ledger.js';
+export {
+  RELAY_STATUSES,
+  SolverRelay,
+  createSolverRelay,
+} from './relay.js';
+export {
+  ORDER_STATUSES,
+  SWAP_STATUSES,
+  TOKEN_CATALOG,
+  createSwapApi,
+} from './swapApi.js';
+export {
   MAINNET_GATE_FLAGS,
   STELLAR_NETWORKS,
   TESTNET_INTENTS_CONTRACT_ID,

@@ -84,6 +84,10 @@ Simulates solver fill and settlement for Stellar routes, ending in status `settl
 
 Refunds an open intent after its deadline has passed. Refunding before the deadline fails with `deadline has not passed`.
 
+### Swap API
+
+The full swap layer is documented in [oruva-intents-architecture.md](oruva-intents-architecture.md). Endpoints: `GET /tester/v1/tokens` (public catalog), `POST /tester/v1/swap/quote` (dry or committed; swap types `EXACT_INPUT`, `EXACT_OUTPUT`, `FLEX_INPUT`, partner-gated `ANY_INPUT`; amounts are integer strings in the smallest unit), `POST /tester/v1/swap/deposit/submit`, `GET /tester/v1/swap/status?depositMemo=...`, `POST /tester/v1/swap/generate-intent`, `POST /tester/v1/swap/submit-intent` (SEP-53 signed ledger execution), `POST /tester/v1/swap/orders` plus fund, simulate-fill, cancel, get and list for limit orders, and `GET /tester/v1/swap/balances` for verifier ledger balances.
+
 ### POST /tester/v1/reset
 
 Clears your sandbox quotes and intents. Other testers are unaffected.

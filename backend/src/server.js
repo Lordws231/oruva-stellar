@@ -132,6 +132,89 @@ export function createTesterHttpServer({
         }));
         return;
       }
+      if (method === 'GET' && path === '/tester/v1/tokens') {
+        sendJson(response, 200, api.tokens());
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/swap/quote') {
+        sendJson(response, 200, await api.swapQuote({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/swap/deposit/submit') {
+        sendJson(response, 200, api.swapDepositSubmit({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
+      if (method === 'GET' && path === '/tester/v1/swap/status') {
+        sendJson(response, 200, api.swapStatus({
+          headers: request.headers,
+          query: { depositMemo: url.searchParams.get('depositMemo') },
+        }));
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/swap/generate-intent') {
+        sendJson(response, 200, api.swapGenerateIntent({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/swap/submit-intent') {
+        sendJson(response, 200, api.swapSubmitIntent({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
+      if (method === 'POST' && path === '/tester/v1/swap/orders') {
+        sendJson(response, 201, api.createOrder({
+          headers: request.headers,
+          body: await readJsonBody(request),
+        }));
+        return;
+      }
+      if (method === 'GET' && path === '/tester/v1/swap/orders') {
+        sendJson(response, 200, api.listOrders({ headers: request.headers }));
+        return;
+      }
+      if (method === 'GET' && path === '/tester/v1/swap/balances') {
+        sendJson(response, 200, api.swapBalances({ headers: request.headers }));
+        return;
+      }
+      const orderMatch = path.match(/^\/tester\/v1\/swap\/orders\/([^/]+)(?:\/(fund|simulate-fill|cancel))?$/);
+      if (orderMatch) {
+        const orderId = decodeURIComponent(orderMatch[1]);
+        const action = orderMatch[2];
+        if (method === 'GET' && !action) {
+          sendJson(response, 200, api.getOrder({ headers: request.headers, params: { orderId } }));
+          return;
+        }
+        if (method === 'POST' && action === 'fund') {
+          sendJson(response, 200, api.fundOrder({
+            headers: request.headers,
+            params: { orderId },
+            body: await readJsonBody(request),
+          }));
+          return;
+        }
+        if (method === 'POST' && action === 'simulate-fill') {
+          sendJson(response, 200, api.simulateFillOrder({
+            headers: request.headers,
+            params: { orderId },
+            body: await readJsonBody(request),
+          }));
+          return;
+        }
+        if (method === 'POST' && action === 'cancel') {
+          sendJson(response, 200, api.cancelOrder({ headers: request.headers, params: { orderId } }));
+          return;
+        }
+      }
       if (method === 'POST' && path === '/tester/v1/reset') {
         sendJson(response, 200, api.reset({ headers: request.headers }));
         return;

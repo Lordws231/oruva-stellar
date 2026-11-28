@@ -15,6 +15,7 @@ import {
   IntentService,
   StellarDexRouteAdapter,
 } from './intents.js';
+import { createSwapApi } from './swapApi.js';
 
 export const TESTER_NETWORK = 'stellar-testnet';
 export const TESTER_DEFAULT_MAX_INPUT_AMOUNT = 10;
@@ -35,6 +36,19 @@ export const TESTER_API_ROUTES = Object.freeze([
   'POST /tester/v1/intents/:intentId/refund',
   'POST /tester/v1/intents/:intentId/simulate-fill',
   'POST /tester/v1/reset',
+  'GET /tester/v1/tokens',
+  'POST /tester/v1/swap/quote',
+  'POST /tester/v1/swap/deposit/submit',
+  'GET /tester/v1/swap/status',
+  'POST /tester/v1/swap/generate-intent',
+  'POST /tester/v1/swap/submit-intent',
+  'POST /tester/v1/swap/orders',
+  'GET /tester/v1/swap/orders',
+  'GET /tester/v1/swap/orders/:orderId',
+  'POST /tester/v1/swap/orders/:orderId/fund',
+  'POST /tester/v1/swap/orders/:orderId/simulate-fill',
+  'POST /tester/v1/swap/orders/:orderId/cancel',
+  'GET /tester/v1/swap/balances',
 ]);
 
 const TESTER_SCOPES = Object.freeze([
@@ -70,6 +84,7 @@ export function createTesterApi({
   keyIssueLimiter = new ApiKeyRateLimiter({ limit: 5, windowMs: 3600000 }),
   maxInputAmount = TESTER_DEFAULT_MAX_INPUT_AMOUNT,
 } = {}) {
+  const swapApi = createSwapApi({ maxWholeUnits: maxInputAmount });
   const quoteOwners = new Map();
   const intentOwners = new Map();
   const accounts = new Map();
@@ -353,6 +368,70 @@ export function createTesterApi({
         simulated: true,
       });
       return { ...settled, sandbox: true, network: TESTER_NETWORK };
+    },
+
+    tokens() {
+      return swapApi.tokens();
+    },
+
+    async swapQuote({ headers, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.QUOTE);
+      return swapApi.quote({ ownerId: verified.masterId, body });
+    },
+
+    swapDepositSubmit({ headers, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
+      return swapApi.depositSubmit({ ownerId: verified.masterId, body });
+    },
+
+    swapStatus({ headers, query = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.STATUS);
+      return swapApi.status({ ownerId: verified.masterId, depositMemo: query.depositMemo });
+    },
+
+    swapGenerateIntent({ headers, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.QUOTE);
+      return swapApi.generateIntent({ ownerId: verified.masterId, body });
+    },
+
+    swapSubmitIntent({ headers, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
+      return swapApi.submitIntent({ ownerId: verified.masterId, body });
+    },
+
+    createOrder({ headers, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
+      return swapApi.createOrder({ ownerId: verified.masterId, body });
+    },
+
+    listOrders({ headers } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.STATUS);
+      return swapApi.listOrders({ ownerId: verified.masterId });
+    },
+
+    getOrder({ headers, params = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.STATUS);
+      return swapApi.getOrder({ ownerId: verified.masterId, orderId: params.orderId });
+    },
+
+    fundOrder({ headers, params = {}, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
+      return swapApi.fundOrder({ ownerId: verified.masterId, orderId: params.orderId, body });
+    },
+
+    simulateFillOrder({ headers, params = {}, body = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.SUBMIT);
+      return swapApi.simulateFillOrder({ ownerId: verified.masterId, orderId: params.orderId, body });
+    },
+
+    cancelOrder({ headers, params = {} } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.REFUND);
+      return swapApi.cancelOrder({ ownerId: verified.masterId, orderId: params.orderId });
+    },
+
+    swapBalances({ headers } = {}) {
+      const verified = authorize(headers, API_KEY_SCOPES.STATUS);
+      return swapApi.ledgerBalances({ ownerId: verified.masterId });
     },
 
     reset({ headers } = {}) {
