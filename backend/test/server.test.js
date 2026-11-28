@@ -20,9 +20,17 @@ test('tester server serves health, dashboard and docs', async () => {
     assert.equal(health.liveMoney, false);
 
     const home = await fetch(`${base}/`).then((r) => r.text());
-    assert.match(home, /Developer Dashboard/);
-    assert.match(home, /Register or sign in/);
+    assert.match(home, /State your outcome/);
+    assert.match(home, /Register for Oruva Intents/);
+    assert.match(home, /Sign in to Oruva Intents/);
     assert.match(home, /Master Key/);
+    assert.match(home, /2026 Oruva Intents/);
+    assert.equal(home.includes('—'), false);
+
+    const register = await fetch(`${base}/register`).then((r) => r.text());
+    assert.match(register, /Register &amp; Generate Master Credentials/);
+    const signin = await fetch(`${base}/signin`).then((r) => r.text());
+    assert.match(signin, /Welcome back/);
 
     const terms = await fetch(`${base}/terms.html`).then((r) => r.text());
     assert.match(terms, /Tester Terms and Policy/);

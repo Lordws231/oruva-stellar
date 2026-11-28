@@ -3,218 +3,280 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Oruva Intents Developer Dashboard</title>
+<title>Oruva Intents</title>
 <style>
   :root {
     color-scheme: light;
-    --navy: #0a2540;
-    --blue: #0b6bcb;
-    --blue-dark: #084e96;
-    --gold: #c9a227;
-    --ink: #10233b;
+    --navy: #062a5e;
+    --blue: #0057d9;
+    --blue-dark: #0043ab;
+    --sky: #dcebfb;
+    --ink: #12263f;
     --muted: #5b6b82;
-    --line: #dbe4f0;
-    --bg: #eef3fa;
+    --line: #d7e3f2;
+    --bg: #eef4fc;
     --card: #ffffff;
+    --gold: #c9a227;
+    --green: #0a8a5f;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(180deg, #e8f0fb 0, var(--bg) 260px);
-    color: var(--ink);
-  }
-  main { max-width: 1020px; margin: 0 auto; padding: 20px 16px 56px; }
-  .hero {
-    background: linear-gradient(135deg, var(--navy) 0%, #0d3f73 62%, var(--blue) 100%);
-    color: #ffffff;
-    border-radius: 20px;
-    padding: 26px 24px;
-    box-shadow: 0 18px 40px rgba(10, 37, 64, 0.22);
-    margin-bottom: 18px;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero::after {
-    content: "";
-    position: absolute;
-    right: -70px; top: -70px;
-    width: 230px; height: 230px;
-    border: 26px solid rgba(201, 162, 39, 0.28);
-    border-radius: 50%;
-  }
-  .brandrow { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
-  .omark {
-    width: 52px; height: 52px; flex: 0 0 52px;
-    border-radius: 50%;
-    border: 7px solid #ffffff;
-    border-bottom-color: var(--gold);
-    display: grid; place-items: center;
-    font-weight: 800; font-size: 1.05rem; color: #ffffff;
-  }
-  h1 { font-size: 1.65rem; margin: 0; letter-spacing: -0.02em; }
-  .tagline { margin: 4px 0 0; color: #cfe2f7; line-height: 1.45; }
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; position: relative; z-index: 1; }
-  .badge {
-    background: rgba(255,255,255,0.14);
-    border: 1px solid rgba(255,255,255,0.35);
-    color: #ffffff;
-    border-radius: 999px;
-    padding: 5px 11px;
-    font-size: 0.8rem; font-weight: 650;
-  }
-  .badge.gold { background: var(--gold); border-color: var(--gold); color: #1c1602; }
-  .hero a { color: #ffffff; font-weight: 700; }
-  h2 { font-size: 1.08rem; margin: 0 0 12px; letter-spacing: -0.01em; }
+  body { margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  a { color: var(--blue); }
+  .topnav { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 14px 28px; background: #f7fbff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .brandmark { width: 46px; height: 46px; flex: 0 0 46px; }
+  .brandname { font-size: 1.45rem; font-weight: 800; color: var(--navy); line-height: 1.02; letter-spacing: -0.02em; }
+  .brandpill { background: var(--sky); color: var(--navy); border-radius: 999px; padding: 6px 12px; font-size: 0.82rem; font-weight: 650; }
+  .navlinks { display: flex; gap: 18px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+  .navlinks a { color: var(--ink); text-decoration: none; font-weight: 600; }
+  .navlinks a.nav-active { color: var(--blue); text-decoration: underline; text-underline-offset: 5px; }
+  .navbtn { border-radius: 10px; padding: 10px 18px; font-weight: 700; text-decoration: none; border: 1.5px solid var(--blue); color: var(--blue); background: #fff; }
+  .navbtn.primary { background: var(--blue); color: #fff; }
+  main { max-width: 1240px; margin: 0 auto; padding: 28px 20px 40px; }
+  h1 { color: var(--navy); letter-spacing: -0.02em; }
+  h2 { color: var(--navy); letter-spacing: -0.01em; }
   p { line-height: 1.55; }
-  .notice {
-    background: #fff7e0;
-    border: 1px solid #e3b93c;
-    border-left: 6px solid var(--gold);
-    border-radius: 14px;
-    padding: 13px 16px;
-    margin: 0 0 18px;
-    box-shadow: 0 8px 22px rgba(10, 37, 64, 0.07);
-  }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 28px; align-items: start; }
+  .hero-copy h1 { font-size: clamp(2rem, 4.6vw, 3.4rem); margin: 10px 0 14px; line-height: 1.08; }
+  .hero-copy .lede { font-size: 1.05rem; max-width: 560px; }
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 22px 0 16px; }
+  .cta { flex: 1 1 200px; text-align: center; padding: 16px 20px; border-radius: 12px; font-size: 1.1rem; font-weight: 750; text-decoration: none; border: 2px solid var(--blue); color: var(--blue); background: #fff; box-shadow: 0 10px 24px rgba(0, 87, 217, 0.14); }
+  .cta.primary { background: linear-gradient(180deg, #0a68f0, var(--blue-dark)); color: #fff; }
+  .register-card { background: #eaf2fd; border: 1.5px solid #bcd4f5; border-radius: 14px; padding: 16px 18px; }
+  .register-card strong { color: var(--navy); font-size: 1.05rem; }
+  .pill-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .pill { background: #fff; border: 1.5px solid #bcd4f5; border-radius: 999px; padding: 7px 13px; font-weight: 650; font-size: 0.88rem; color: var(--navy); }
+  .live-panel { background: linear-gradient(150deg, #7ea8e8 0%, #4a7fd4 55%, #2f63b8 100%); border-radius: 18px; padding: 22px; box-shadow: 0 18px 40px rgba(6, 42, 94, 0.2); }
+  .live-card { background: #eef5ff; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .live-card:last-child { margin-bottom: 0; }
+  .live-card h3 { margin: 0 0 8px; color: var(--navy); font-size: 1rem; }
+  .active-dot { color: var(--green); font-weight: 700; font-size: 0.85rem; }
+  .solver-row { display: flex; justify-content: space-between; gap: 10px; background: #fff; border-radius: 10px; padding: 10px 12px; margin-top: 8px; flex-wrap: wrap; }
+  .best-badge { background: var(--green); color: #fff; border-radius: 8px; padding: 3px 9px; font-size: 0.78rem; font-weight: 750; }
+  .verified-line { color: var(--green); font-weight: 700; font-size: 0.88rem; margin-top: 10px; }
+  .section-title { text-align: center; margin: 40px 0 6px; font-size: clamp(1.4rem, 3vw, 2rem); }
+  .section-sub { text-align: center; color: var(--muted); margin: 0 0 18px; font-size: 1.05rem; }
+  .chain-pills { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 22px; }
+  .chain-pill { background: var(--sky); color: var(--navy); border-radius: 14px; padding: 13px 20px; font-weight: 750; font-size: 1rem; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: 0 10px 26px rgba(6, 42, 94, 0.07); }
+  .feature-card h3 { margin: 0 0 8px; color: var(--navy); font-size: 1.2rem; }
+  .feature-card p { margin: 0; }
+  .auth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .auth-card { background: var(--card); border: 1.5px solid #bcd4f5; border-radius: 18px; padding: 26px; box-shadow: 0 14px 34px rgba(6, 42, 94, 0.09); }
+  .auth-card h1 { margin: 0 0 10px; font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+  .auth-card h2 { margin: 18px 0 12px; font-size: 1.35rem; }
+  .info-box { background: #eaf2fd; border-radius: 12px; padding: 14px 16px; margin: 14px 0; }
+  .how-panel { background: #e3eefc; border-radius: 18px; padding: 26px; }
+  .how-panel h2 { margin: 0 0 16px; font-size: 1.5rem; }
+  .step { display: flex; gap: 14px; margin-bottom: 18px; }
+  .step-icon { width: 52px; height: 52px; flex: 0 0 52px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; font-size: 1.3rem; font-weight: 800; }
+  .step h3 { margin: 4px 0; color: var(--navy); }
+  .step p { margin: 0; }
+  .chains-box { background: #fff; border-radius: 14px; padding: 16px; margin-top: 6px; }
+  .chains-box h3 { margin: 0 0 10px; color: var(--navy); }
+  .receive-box { border: 1.5px solid #bcd4f5; border-radius: 12px; padding: 14px 16px; margin-top: 16px; background: #f2f8ff; }
+  .signin-left h1 { font-size: clamp(1.8rem, 3.6vw, 2.6rem); margin: 8px 0 10px; }
+  .signin-feature { margin: 22px 0; }
+  .signin-feature h3 { margin: 0 0 4px; color: var(--navy); font-size: 1.2rem; }
+  .signin-feature p { margin: 0; }
+  .trust-pill { display: inline-block; border: 1.5px solid #9dbde8; border-radius: 10px; padding: 9px 14px; font-weight: 650; color: var(--navy); background: #fff; margin-top: 10px; }
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; }
+  .eye-btn { flex: 0 0 auto; }
+  .center-link { text-align: center; margin-top: 16px; }
+  .support-line { text-align: center; color: var(--muted); margin-top: 18px; font-size: 0.9rem; }
+  .mini-features { display: grid; grid-template-columns: repeat(3, 1fr); background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 16px; text-align: center; }
+  .mini-features div + div { border-left: 1px solid var(--line); }
+  .mini-features strong { display: block; color: var(--navy); margin-top: 6px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 16px; box-shadow: 0 10px 28px rgba(6, 42, 94, 0.07); }
+  section h2 { font-size: 1.08rem; margin: 0 0 12px; }
+  .notice { background: #fff7e0; border: 1px solid #e3b93c; border-left: 6px solid var(--gold); border-radius: 14px; padding: 13px 16px; margin: 0 0 18px; }
   .notice strong { display: block; margin-bottom: 4px; }
-  section {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 10px 28px rgba(10, 37, 64, 0.07);
-  }
-  #gateSection { border-top: 5px solid var(--blue); }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
-  }
-  label { display: block; font-size: 0.85rem; font-weight: 650; margin-bottom: 5px; }
-  input, select {
-    width: 100%;
-    padding: 10px 11px;
-    border: 1px solid #b9c9de;
-    border-radius: 10px;
-    font: inherit;
-    background: #ffffff;
-    color: inherit;
-  }
-  input:focus, select:focus {
-    outline: 3px solid rgba(11, 107, 203, 0.22);
-    border-color: var(--blue);
-  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  label { display: block; font-size: 0.88rem; font-weight: 650; margin-bottom: 5px; }
+  input, select { width: 100%; padding: 11px 12px; border: 1px solid #b9c9de; border-radius: 10px; font: inherit; background: #fff; color: inherit; }
+  input:focus, select:focus { outline: 3px solid rgba(0, 87, 217, 0.22); border-color: var(--blue); }
   input[readonly] { background: #f2f6fc; color: #33475f; }
   .hint { font-size: 0.8rem; color: var(--muted); margin-top: 5px; }
   .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
-  button {
-    padding: 10px 16px;
-    border: 1px solid var(--blue);
-    border-radius: 999px;
-    background: linear-gradient(180deg, #1280e0, var(--blue-dark));
-    color: #ffffff;
-    font: inherit; font-weight: 650;
-    cursor: pointer;
-    box-shadow: 0 8px 18px rgba(11, 107, 203, 0.22);
-  }
-  button.secondary { background: #ffffff; color: var(--blue-dark); box-shadow: none; }
+  button { padding: 11px 18px; border: 1.5px solid var(--blue); border-radius: 10px; background: linear-gradient(180deg, #0a68f0, var(--blue-dark)); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--blue-dark); }
   button:disabled { opacity: 0.55; cursor: wait; }
+  button.wide { width: 100%; padding: 15px; font-size: 1.05rem; border-radius: 12px; }
   #statusLine { font-weight: 700; margin: 0 0 8px; }
-  pre {
-    background: #08192e;
-    color: #c9ecff;
-    border-radius: 14px;
-    padding: 14px;
-    overflow: auto;
-    min-height: 160px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0;
-  }
+  pre { background: #08192e; color: #c9ecff; border-radius: 14px; padding: 14px; overflow: auto; min-height: 160px; white-space: pre-wrap; word-break: break-word; margin: 0; }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  body.locked .platform-section { display: none; }
-  body:not(.locked) #gateSection { display: none; }
+  body.locked #dashboardView { display: none; }
   .checkrow { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; }
   .checkrow input { width: auto; margin-top: 3px; }
-  #keyList p {
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 10px 12px;
-    background: #f8fbff;
-  }
-  @media (max-width: 640px) {
-    main { padding: 12px 10px 40px; }
-    .hero { padding: 20px 16px; border-radius: 16px; }
-    h1 { font-size: 1.35rem; }
-    section { padding: 16px; border-radius: 14px; }
+  #keyList p { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #f8fbff; }
+  footer { background: #dbe9fa; padding: 18px 28px; display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; color: var(--navy); font-weight: 600; }
+  footer a { color: var(--navy); text-decoration: none; margin-left: 14px; }
+  @media (max-width: 900px) {
+    .hero-grid, .auth-grid, .feature-grid { grid-template-columns: 1fr; }
+    .navlinks a:not(.navbtn) { display: none; }
+    main { padding: 18px 14px 34px; }
+    .cta { flex-basis: 100%; }
+    .topnav { padding: 12px 16px; }
+    .brandname { font-size: 1.2rem; }
   }
 </style>
 </head>
 <body class="locked">
-<main>
-  <header class="hero">
-    <div class="brandrow">
-      <div class="omark" aria-hidden="true">O</div>
-      <div>
-        <h1>Oruva Intents Developer Dashboard</h1>
-        <p class="tagline">Test quote, submit, status and refund flows on Stellar testnet. New here? Read the <a href="docs.html">tester docs and quickstart</a>.</p>
+  <nav class="topnav">
+    <a class="brand" href="#" data-view="home"><svg class="brandmark" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,4 56,18 56,46 32,60 8,46 8,18" fill="none" stroke="#0057d9" stroke-width="3"/><circle cx="32" cy="4" r="3.5" fill="#0057d9"/><circle cx="56" cy="18" r="3.5" fill="#0057d9"/><circle cx="56" cy="46" r="3.5" fill="#0057d9"/><circle cx="32" cy="60" r="3.5" fill="#0057d9"/><circle cx="8" cy="46" r="3.5" fill="#0057d9"/><circle cx="8" cy="18" r="3.5" fill="#0057d9"/><path d="M32 22 L36 30 L44 32 L36 34 L32 42 L28 34 L20 32 L28 30 Z" fill="#0057d9"/></svg><span class="brandname">Oruva<br>Intents</span></a>
+    <span class="brandpill">Stellar-native &middot; Nigerian-built</span>
+    <span class="brandpill">Stellar Testnet Sandbox</span>
+    <div class="navlinks">
+      <a href="docs.html">Docs</a>
+      <a href="#" data-view="home">Chains</a>
+      <a href="docs.html">Developers</a>
+      <a href="#" data-view="signin" class="navbtn">Sign in</a>
+      <a href="#" data-view="register" class="navbtn primary">Registration</a>
+    </div>
+  </nav>
+  <main>
+  <div id="homeView">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <h1>State your outcome. Solvers compete. Settle across 18 chains.</h1>
+        <p class="lede">Oruva Intents is Oruva's Stellar-native intent protocol at intents.oruva.com.ng, the public developer platform for cross-chain swaps, conversions, and payouts. Users state the desired outcome, solvers compete with quotes to deliver it, and settlement is verified securely on-chain.</p>
+        <div class="cta-row">
+          <a class="cta primary" href="#" data-view="register">Registration</a>
+          <a class="cta" href="#" data-view="signin">Sign in</a>
+        </div>
+        <div class="register-card">
+          <strong>Register your Business, Organization, or Platform</strong>
+          <div class="pill-row">
+            <span class="pill">Issues Master ID</span>
+            <span class="pill">Issues Master Key</span>
+            <span class="pill">Issues Master URL</span>
+          </div>
+          <p class="hint">Testnet sandbox. No real funds move.</p>
+        </div>
+      </div>
+      <div class="live-panel" aria-label="Example live intent request">
+        <div class="live-card">
+          <h3>Live Intent Request</h3>
+          <span class="active-dot">Active</span>
+          <p><strong>Desired Outcome:</strong><br>Swap 1,000 USDT (Solana) to 1.5M NGN Payout to Bank (Stellar)</p>
+          <p class="hint">Example intent. Sandbox settlement is simulated on testnet.</p>
+        </div>
+        <div class="live-card">
+          <h3>Competing Solvers: 6 <span class="best-badge">Best Quote</span></h3>
+          <div class="solver-row"><span><strong>Solver A</strong></span><span>1,499,120 NGN &middot; 28s &middot; 0.12% fee</span></div>
+          <div class="solver-row"><span><strong>Solver B</strong></span><span>1,497,800 NGN &middot; 43s &middot; 0.10% fee</span></div>
+          <div class="solver-row"><span><strong>Solver C</strong></span><span>1,500,400 NGN &middot; 22s &middot; 0.15% fee</span></div>
+          <p class="verified-line">Settlement verified on Stellar &middot; Funds released via 1Click</p>
+        </div>
       </div>
     </div>
-    <div class="badges">
-      <span class="badge gold">Stellar Testnet</span>
-      <span class="badge">Sandbox</span>
-      <span class="badge">No real funds</span>
-      <span class="badge">Comfort and Safety at Every Destination</span>
+    <h2 class="section-title">Built for developers &amp; businesses</h2>
+    <p class="section-sub">Integrate intents into your product in 1Click</p>
+    <div class="chain-pills">
+      <span class="chain-pill">Stellar</span>
+      <span class="chain-pill">EVM Chains</span>
+      <span class="chain-pill">Bitcoin</span>
+      <span class="chain-pill">Solana</span>
+      <span class="chain-pill">NEAR</span>
+      <span class="chain-pill">XRP</span>
+      <span class="chain-pill">TRON</span>
+      <span class="chain-pill">TON</span>
     </div>
-  </header>
+    <div class="feature-grid">
+      <div class="feature-card"><h3>Cross-chain Swaps</h3><p>Swap assets seamlessly across Stellar, EVM, Bitcoin, Solana, NEAR, XRP, TRON, TON and more</p></div>
+      <div class="feature-card"><h3>1Click Settlement</h3><p>Solvers compete for the best quote; settlement is verified and finalized automatically</p></div>
+      <div class="feature-card"><h3>Secure &amp; Auditable</h3><p>Master ID, Master Key, and Master URL issued per org. Full logs, verifiable settlement on-chain</p></div>
+    </div>
+  </div>
 
+  <div id="registerView" style="display:none">
+    <div class="auth-grid">
+      <div class="auth-card">
+        <h1>Register for Oruva Intents</h1>
+        <p>Get your Master credentials to integrate Oruva Intents into your app. State your desired outcome, solvers compete to fulfill, settlement is verified.</p>
+        <h2>Organization Registration</h2>
+        <label for="regName">Business, Organization or Platform name</label>
+        <input id="regName" type="text" placeholder="e.g. FinTech Nigeria Ltd" autocomplete="organization">
+        <p class="hint">This becomes the default name of your Master Key.</p>
+        <label for="regEmail" style="margin-top:12px">Email</label>
+        <input id="regEmail" type="email" placeholder="you@yourbusiness.com" autocomplete="email">
+        <div class="info-box">Oruva Intents is a public developer platform for cross-chain swaps, conversions &amp; payouts across 18 chains: Stellar, EVM, Bitcoin, Solana, NEAR, XRP, TRON, TON</div>
+        <div class="checkrow">
+          <input id="acceptTerms" type="checkbox">
+          <label for="acceptTerms">I accept the <a href="terms.html" target="_blank" rel="noopener">Oruva Intents Tester Terms and Policy</a>, including testnet-only use with no real funds.</label>
+        </div>
+        <div class="actions">
+          <button type="button" id="registerButton" class="wide">Register &amp; Generate Master Credentials</button>
+        </div>
+        <p class="hint">By registering you agree to the Oruva Terms &amp; Developer Policy. Credentials are securely generated after registration.</p>
+      </div>
+      <div class="how-panel">
+        <h2>How Oruva Intents Works</h2>
+        <div class="step"><div class="step-icon">1</div><div><h3>Declare your Intent</h3><p>User states the desired outcome. e.g. Swap 1000 USDC on Ethereum to XLM on Stellar.</p></div></div>
+        <div class="step"><div class="step-icon">2</div><div><h3>Solvers Compete</h3><p>Registered solvers submit quotes. Best price &amp; route is selected in seconds.</p></div></div>
+        <div class="step"><div class="step-icon">3</div><div><h3>Verified Settlement</h3><p>Settlement is executed &amp; verified on-chain. Funds delivered to destination chain.</p></div></div>
+        <div class="chains-box">
+          <h3>Supported Chains</h3>
+          <div class="pill-row">
+            <span class="pill">Stellar</span><span class="pill">EVM Chains</span><span class="pill">Bitcoin</span><span class="pill">Solana</span><span class="pill">NEAR</span><span class="pill">XRP</span><span class="pill">TRON</span><span class="pill">TON</span>
+          </div>
+        </div>
+        <div class="receive-box">
+          <p style="margin:0">After registration you will receive:<br>Master ID &middot; Master Key (secret) &middot; Master URL endpoint</p>
+        </div>
+        <div class="mini-features">
+          <div><strong>1Click Intent</strong></div>
+          <div><strong>18 Chains</strong></div>
+          <div><strong>Verified Settlement</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="signinView" style="display:none">
+    <div class="auth-grid">
+      <div class="signin-left">
+        <h1>Sign in to Oruva Intents</h1>
+        <p>State your desired outcome. Solvers compete with quotes. Settlement is verified.</p>
+        <div class="signin-feature"><h3>1-Click Intents</h3><p>Describe what you want. Get the best quote instantly.</p></div>
+        <div class="signin-feature"><h3>Cross-Chain by Design</h3><p>Swap, convert &amp; payout across 18 chains including Stellar, EVM, Bitcoin, Solana, NEAR, XRP, TRON, TON</p></div>
+        <div class="signin-feature"><h3>Verified Settlement</h3><p>On-chain verification for every transaction. Secure &amp; auditable.</p></div>
+        <span class="trust-pill">Nigerian-built &middot; Trusted by developers &amp; businesses</span>
+      </div>
+      <div class="auth-card">
+        <h1>Welcome back</h1>
+        <p>Sign in with your Master Credentials</p>
+        <label for="signInBusiness">Business / Organization / Platform</label>
+        <input id="signInBusiness" type="text" placeholder="e.g. Acme Payments Ltd" autocomplete="organization">
+        <label for="signInMasterId" style="margin-top:12px">Master ID</label>
+        <input id="signInMasterId" type="text" placeholder="oruva-dev-..." autocomplete="off">
+        <label for="signInMasterKey" style="margin-top:12px">Master Key</label>
+        <div class="key-row">
+          <input id="signInMasterKey" type="password" placeholder="oruva_test_..." autocomplete="off">
+          <button type="button" id="toggleKeyVisibility" class="secondary eye-btn">Show</button>
+        </div>
+        <div class="checkrow">
+          <input id="rememberDevice" type="checkbox">
+          <label for="rememberDevice">Remember this device</label>
+        </div>
+        <div class="actions">
+          <button type="button" id="signInButton" class="wide">Sign In</button>
+        </div>
+        <p class="center-link">Don't have credentials?<br><a href="#" data-view="register"><strong>Register your platform</strong></a></p>
+        <p class="support-line">Need help? Contact support &middot; <a href="docs.html">Docs</a> &middot; Status Page</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboardView">
   <div class="notice" role="note">
     <strong>Sandbox and testnet only</strong>
     Use a testnet sandbox API key and testnet funds only. Do not use mainnet keys or real
     funds here. Routes are simulated or quote gated in this phase, and no live fiat payout
     is claimed until partner and licensing gates clear.
   </div>
-
-
-  <section id="gateSection" aria-labelledby="gateHeading">
-    <h2 id="gateHeading">Register or sign in</h2>
-    <p>Access to the Oruva Intents tester platform requires an account. Registration issues your Master ID and Master Key. The Master URL is <code>https://intents.oruva.com.ng/tester</code>.</p>
-    <div class="grid">
-      <div>
-        <label for="regName">Business / Organization / Platform name</label>
-        <input id="regName" type="text" placeholder="e.g. Acme Mobility Ltd" autocomplete="organization">
-        <p class="hint">This becomes the default name of your Master Key.</p>
-      </div>
-      <div>
-        <label for="regEmail">Email</label>
-        <input id="regEmail" type="email" autocomplete="email">
-      </div>
-    </div>
-    <div class="checkrow">
-      <input id="acceptTerms" type="checkbox">
-      <label for="acceptTerms">I accept the <a href="terms.html" target="_blank" rel="noopener">Oruva Intents Tester Terms and Policy</a>, including testnet-only use with no real funds.</label>
-    </div>
-    <div class="actions">
-      <button type="button" id="registerButton">Register and get my Master Key</button>
-    </div>
-    <h2 style="margin-top:20px">Already registered?</h2>
-    <div class="grid">
-      <div>
-        <label for="signInMasterId">Master ID</label>
-        <input id="signInMasterId" type="text" placeholder="oruva-dev-..." autocomplete="off">
-      </div>
-      <div>
-        <label for="signInMasterKey">Master Key</label>
-        <input id="signInMasterKey" type="password" placeholder="oruva_test_..." autocomplete="off">
-      </div>
-    </div>
-    <div class="actions">
-      <button type="button" id="signInButton" class="secondary">Sign in</button>
-    </div>
-    <p class="hint">Your Master Key is issued by Oruva at registration and shown once. Keep it secret; it signs in as your account.</p>
-  </section>
-
   <section class="platform-section" aria-labelledby="connectionHeading">
     <h2 id="connectionHeading">Connection</h2>
     <div class="grid">
@@ -372,7 +434,12 @@
     <p id="statusLine">No request sent yet.</p>
     <pre id="results" aria-live="polite">{}</pre>
   </section>
-</main>
+  </div>
+  </main>
+  <footer>
+    <span>&copy; 2026 Oruva Intents &middot; Built in Nigeria &middot; intents.oruva.com.ng</span>
+    <span><a href="terms.html">Terms</a><a href="terms.html">Privacy</a><a href="tester/v1/health">Status</a><a href="https://github.com/Lordws231/oruva-stellar">GitHub</a></span>
+  </footer>
 
 <script>
   var resultsEl = document.getElementById('results');
@@ -475,9 +542,22 @@
     return window.location.origin + '/tester';
   }
 
-  function unlock(session, message) {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  function showView(name) {
+    ['home', 'register', 'signin', 'dashboard'].forEach(function (view) {
+      var el = document.getElementById(view + 'View');
+      if (el) el.style.display = view === name ? '' : 'none';
+    });
+    document.querySelectorAll('[data-view]').forEach(function (el) {
+      el.classList.toggle('nav-active', el.getAttribute('data-view') === name);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function unlock(session, message, remember) {
+    var store = remember ? localStorage : sessionStorage;
+    store.setItem(SESSION_KEY, JSON.stringify(session));
     document.body.classList.remove('locked');
+    showView('dashboard');
     document.getElementById('apiBase').value = session.masterUrl || masterUrl();
     document.getElementById('masterId').value = session.masterId || '';
     document.getElementById('apiKey').value = session.masterKey || '';
@@ -486,7 +566,9 @@
 
   function lock(message) {
     sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
     document.body.classList.add('locked');
+    showView('home');
     document.getElementById('apiKey').value = '';
     show(message, {});
   }
@@ -539,7 +621,8 @@
       if (!account) return;
       unlock(
         { masterId: account.masterId, masterKey: masterKey, masterUrl: account.masterUrl },
-        'Signed in as ' + account.masterId + '.'
+        'Signed in as ' + account.masterId + '.',
+        document.getElementById('rememberDevice').checked
       );
     });
   });
@@ -548,15 +631,35 @@
     lock('Signed out. Register or sign in to use the platform.');
   });
 
+  document.querySelectorAll('[data-view]').forEach(function (el) {
+    el.addEventListener('click', function (event) {
+      event.preventDefault();
+      showView(el.getAttribute('data-view'));
+    });
+  });
+
+  document.getElementById('toggleKeyVisibility').addEventListener('click', function () {
+    var input = document.getElementById('signInMasterKey');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
   (function restoreSession() {
     document.getElementById('apiBase').value = masterUrl();
+    var path = window.location.pathname;
+    var hash = window.location.hash;
+    if (path.endsWith('/register') || hash === '#register') showView('register');
+    else if (path.endsWith('/signin') || hash === '#signin') showView('signin');
+    else showView('home');
     try {
-      var saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      var saved = JSON.parse(
+        sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || 'null'
+      );
       if (saved && saved.masterId && saved.masterKey) {
         unlock(saved, 'Signed in as ' + saved.masterId + '.');
       }
     } catch (error) {
       sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
     }
   })();
 
