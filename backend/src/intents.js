@@ -4,6 +4,10 @@
 // flows with idempotency keys, solver bids, route adapters and evidence
 // packs. Route adapters here are simulated or quote-gated; no live fiat
 // payout is claimed until partner and licensing gates clear.
+// Cross-chain settlement requires verified delivery proof; a solver
+// delivery reference alone does not settle a cross-chain fill.
+
+import { verifyDeliveryProof } from './deliveryProof.js';
 
 export const INTENT_KINDS = new Set([
   'fare_payment',
@@ -31,6 +35,38 @@ const ALLOWED_TRANSITIONS = {
   cancelled: new Set(),
   failed: new Set(),
 };
+
+const CROSS_CHAIN_ROUTES = new Set(['cctp_stellar_to_polygon', 'near_intents_1click']);
+
+function isCrossChainRecord(record) {
+  return CROSS_CHAIN_ROUTES.has(record.selectedBid.route)
+    || record.intent.outputChain !== 'stellar';
+}
+
+function normalizeRecipientForBinding(value) {
+  const text = String(value ?? '').trim();
+  const lower = text.toLowerCase();
+  if (/^0x[0-9a-f]{40}$/.test(lower)) return lower;
+  if (/^0x[0-9a-f]{64}$/.test(lower)) return `0x${lower.slice(-40)}`;
+  return text;
+}
+
+function assertDeliveryProofBound(record, proof) {
+  if (!proof || proof.verified !== true) {
+    throw new Error('cross-chain settlement requires verified delivery proof');
+  }
+  if (proof.route && proof.route !== record.selectedBid.route) {
+    throw new Error('delivery proof route mismatch');
+  }
+  if (!proof.recipient
+    || normalizeRecipientForBinding(proof.recipient) !== normalizeRecipientForBinding(record.intent.recipient)) {
+    throw new Error('delivery proof recipient mismatch');
+  }
+  const amount = Number(proof.amount);
+  if (!Number.isFinite(amount) || amount < record.intent.minOutputAmount) {
+    throw new Error('delivery proof amount below minimum output');
+  }
+}
 
 function requireText(value, field) {
   if (typeof value !== 'string' || value.trim() === '') {
@@ -175,8 +211,10 @@ export function selectBestBid(bids, minOutputAmount) {
 }
 
 export class IntentService {
-  constructor({ routeAdapters = [] } = {}) {
+  constructor({ routeAdapters = [], deliveryTransports = {}, deliveryVerifier = null } = {}) {
     this.routeAdapters = routeAdapters;
+    this.deliveryTransports = deliveryTransports;
+    this.deliveryVerifier = deliveryVerifier ?? verifyDeliveryProof;
     this.quotes = new Map();
     this.intents = new Map();
     this.idempotency = new Map();
@@ -246,14 +284,37 @@ export class IntentService {
     if (!ALLOWED_TRANSITIONS[record.status]?.has(nextStatus)) {
       throw new Error(`cannot move intent from ${record.status} to ${nextStatus}`);
     }
+    if (nextStatus === 'settled' && isCrossChainRecord(record)) {
+      assertDeliveryProofBound(record, evidence.deliveryProof);
+    }
     record.status = nextStatus;
     if (evidence.txHash) record.txHashes.push(evidence.txHash);
     if (nextStatus === 'settled') {
       record.balances.outputDelivered = record.selectedBid.outputAmount;
       record.balances.inputLocked = 0;
+      if (evidence.deliveryProof) record.deliveryProof = evidence.deliveryProof;
     }
     record.events.push({ type: `intent_${nextStatus}`, at: new Date().toISOString(), ...evidence });
     return record;
+  }
+
+  async settleWithDeliveryProof(intentId, evidence = {}) {
+    const record = this.status(intentId);
+    if (!isCrossChainRecord(record)) {
+      return this.transition(intentId, 'settled', evidence);
+    }
+    const proof = await this.deliveryVerifier({
+      intent: record.intent,
+      selectedBid: record.selectedBid,
+      evidence,
+      transports: this.deliveryTransports,
+    });
+    const txHash = proof.mintTxHash ?? proof.deliveryTxHash ?? evidence.txHash;
+    return this.transition(intentId, 'settled', {
+      ...evidence,
+      deliveryProof: proof,
+      ...(txHash ? { txHash } : {}),
+    });
   }
 
   refund(intentId, now = new Date()) {
@@ -278,6 +339,7 @@ export class IntentService {
       events: [...record.events],
       balances: { ...record.balances },
       quoteEvidence: record.selectedBid.evidence,
+      deliveryProof: record.deliveryProof ?? null,
     };
   }
 }

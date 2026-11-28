@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oruva Stellar Intents Developer Dashboard</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f4f6f5;
+    color: #14201b;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  p { line-height: 1.5; }
+  .notice {
+    background: #fff7e0;
+    border: 1px solid #d9a400;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0 24px;
+  }
+  .notice strong { display: block; margin-bottom: 4px; }
+  section {
+    background: #ffffff;
+    border: 1px solid #d7dedb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+  input, select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #b9c4c0;
+    border-radius: 6px;
+    font: inherit;
+    background: #ffffff;
+    color: inherit;
+  }
+  .hint { font-size: 0.8rem; color: #4c5a55; margin-top: 4px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  button {
+    padding: 8px 14px;
+    border: 1px solid #0b6b4f;
+    border-radius: 6px;
+    background: #0b6b4f;
+    color: #ffffff;
+    font: inherit;
+    cursor: pointer;
+  }
+  button.secondary { background: #ffffff; color: #0b6b4f; }
+  button:disabled { opacity: 0.55; cursor: wait; }
+  #statusLine { font-weight: 600; margin: 0 0 8px; }
+  pre {
+    background: #101613;
+    color: #d7f0e3;
+    border-radius: 8px;
+    padding: 12px;
+    overflow: auto;
+    min-height: 160px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+  }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Oruva Stellar Intents Developer Dashboard</h1>
+  <p>Test the quote, submit, status and refund API contracts from your browser.</p>
+
+  <div class="notice" role="note">
+    <strong>Sandbox and testnet only</strong>
+    Use a testnet sandbox API key and testnet funds only. Do not use mainnet keys or real
+    funds here. Routes are simulated or quote gated in this phase, and no live fiat payout
+    is claimed until partner and licensing gates clear.
+  </div>
+
+  <section aria-labelledby="connectionHeading">
+    <h2 id="connectionHeading">Connection</h2>
+    <div class="grid">
+      <div>
+        <label for="apiBase">API base URL</label>
+        <input id="apiBase" type="url" placeholder="https://api.example.test" autocomplete="off">
+        <p class="hint">Paths such as <code>/v1/intents/quote</code> are added to this base.</p>
+      </div>
+      <div>
+        <label for="apiKey">Sandbox API key</label>
+        <input id="apiKey" type="password" placeholder="oruva_test_..." autocomplete="off">
+        <p class="hint">The key stays in this page memory only. This page never saves it.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="clearKey" class="secondary">Clear API key</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="quoteHeading">
+    <h2 id="quoteHeading">Request a quote</h2>
+    <p>Sends <code>POST /v1/intents/quote</code> with the intent request fields below.</p>
+    <div class="grid">
+      <div>
+        <label for="kind">Kind</label>
+        <select id="kind">
+          <option value="fare_payment">fare_payment</option>
+          <option value="driver_payout">driver_payout</option>
+          <option value="automatic_convert">automatic_convert</option>
+          <option value="manual_convert">manual_convert</option>
+          <option value="swap_convert" selected>swap_convert</option>
+          <option value="cross_chain_payout">cross_chain_payout</option>
+          <option value="escrow_release">escrow_release</option>
+          <option value="recurring_session">recurring_session</option>
+          <option value="agent_payment">agent_payment</option>
+          <option value="bulk_disbursement">bulk_disbursement</option>
+          <option value="anchor_off_ramp">anchor_off_ramp</option>
+          <option value="anchor_on_ramp">anchor_on_ramp</option>
+        </select>
+      </div>
+      <div>
+        <label for="userId">User ID</label>
+        <input id="userId" type="text" value="dev-user-1" autocomplete="off">
+      </div>
+      <div>
+        <label for="inputAsset">Input asset</label>
+        <input id="inputAsset" type="text" value="USDC" autocomplete="off">
+      </div>
+      <div>
+        <label for="inputAmount">Input amount</label>
+        <input id="inputAmount" type="number" value="100" min="0" step="any">
+      </div>
+      <div>
+        <label for="outputAsset">Output asset</label>
+        <input id="outputAsset" type="text" value="USDC" autocomplete="off">
+      </div>
+      <div>
+        <label for="outputChain">Output chain</label>
+        <input id="outputChain" type="text" value="stellar" autocomplete="off">
+      </div>
+      <div>
+        <label for="minOutputAmount">Minimum output amount</label>
+        <input id="minOutputAmount" type="number" value="95" min="0" step="any">
+      </div>
+      <div>
+        <label for="recipient">Recipient</label>
+        <input id="recipient" type="text" value="GRECIPIENT" autocomplete="off">
+      </div>
+      <div>
+        <label for="deadline">Deadline (ISO date)</label>
+        <input id="deadline" type="text" autocomplete="off">
+      </div>
+      <div>
+        <label for="spendLimit">Spend limit (optional)</label>
+        <input id="spendLimit" type="number" min="0" step="any" placeholder="Leave blank for none">
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="quoteButton">Request quote</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="intentHeading">
+    <h2 id="intentHeading">Submit, status and refund</h2>
+    <p>
+      Submit sends <code>POST /v1/intents/submit</code>. Status sends
+      <code>GET /v1/intents/{intentId}</code>. Refund sends
+      <code>POST /v1/intents/{intentId}/refund</code>. A refund succeeds only for an open
+      intent after its deadline has passed.
+    </p>
+    <div class="grid">
+      <div>
+        <label for="quoteId">Quote ID</label>
+        <input id="quoteId" type="text" placeholder="Filled from the quote response" autocomplete="off">
+      </div>
+      <div>
+        <label for="idempotencyKey">Idempotency key</label>
+        <input id="idempotencyKey" type="text" autocomplete="off">
+      </div>
+      <div>
+        <label for="intentId">Intent ID</label>
+        <input id="intentId" type="text" placeholder="Filled from the submit response" autocomplete="off">
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="submitButton">Submit quote</button>
+      <button type="button" id="statusButton">Check status</button>
+      <button type="button" id="refundButton">Request refund</button>
+    </div>
+  </section>
+
+  <section aria-labelledby="resultsHeading">
+    <h2 id="resultsHeading">Results</h2>
+    <p id="statusLine">No request sent yet.</p>
+    <pre id="results" aria-live="polite">{}</pre>
+  </section>
+</main>
+
+<script>
+  var resultsEl = document.getElementById('results');
+  var statusEl = document.getElementById('statusLine');
+  var buttons = [
+    document.getElementById('quoteButton'),
+    document.getElementById('submitButton'),
+    document.getElementById('statusButton'),
+    document.getElementById('refundButton')
+  ];
+
+  function field(id) {
+    return document.getElementById(id).value.trim();
+  }
+
+  function setBusy(busy) {
+    buttons.forEach(function (button) { button.disabled = busy; });
+  }
+
+  function show(statusText, body) {
+    statusEl.textContent = statusText;
+    resultsEl.textContent = JSON.stringify(body, null, 2);
+  }
+
+  function apiBase() {
+    var base = field('apiBase').replace(/\/$/, '');
+    if (!base) throw new Error('Set the API base URL first.');
+    return base;
+  }
+
+  function apiKey() {
+    var key = document.getElementById('apiKey').value;
+    if (!key) throw new Error('Enter a sandbox API key first.');
+    return key;
+  }
+
+  function numberField(id, label) {
+    var value = Number(field(id));
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(label + ' must be a positive number.');
+    }
+    return value;
+  }
+
+  function callApi(path, options) {
+    var init = {
+      method: options.method,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey()
+      }
+    };
+    if (options.headers) {
+      Object.keys(options.headers).forEach(function (name) {
+        init.headers[name] = options.headers[name];
+      });
+    }
+    if (options.body !== undefined) init.body = JSON.stringify(options.body);
+    setBusy(true);
+    return fetch(apiBase() + path, init).then(function (response) {
+      return response.text().then(function (text) {
+        var body;
+        try {
+          body = text ? JSON.parse(text) : {};
+        } catch (parseError) {
+          body = { rawResponse: text };
+        }
+        show(
+          options.label + ' returned HTTP ' + response.status + (response.ok ? ' (ok).' : ' (error).'),
+          body
+        );
+        return body;
+      });
+    }).catch(function (error) {
+      show(options.label + ' failed before a response arrived.', {
+        error: String(error && error.message ? error.message : error),
+        hint: 'Check the API base URL, that the testnet API is running, and that it allows browser requests from this page origin.'
+      });
+      return null;
+    }).then(function (body) {
+      setBusy(false);
+      return body;
+    });
+  }
+
+  function run(label, action) {
+    try {
+      action();
+    } catch (error) {
+      show(label + ' was not sent.', {
+        error: String(error && error.message ? error.message : error)
+      });
+    }
+  }
+
+  document.getElementById('clearKey').addEventListener('click', function () {
+    document.getElementById('apiKey').value = '';
+    show('API key cleared from this page.', {});
+  });
+
+  document.getElementById('quoteButton').addEventListener('click', function () {
+    run('Quote request', function () {
+      var body = {
+        kind: field('kind'),
+        userId: field('userId'),
+        inputAsset: field('inputAsset'),
+        inputAmount: numberField('inputAmount', 'Input amount'),
+        outputAsset: field('outputAsset'),
+        outputChain: field('outputChain'),
+        minOutputAmount: numberField('minOutputAmount', 'Minimum output amount'),
+        recipient: field('recipient'),
+        deadline: field('deadline')
+      };
+      if (field('spendLimit')) body.spendLimit = numberField('spendLimit', 'Spend limit');
+      callApi('/v1/intents/quote', { method: 'POST', body: body, label: 'Quote request' })
+        .then(function (responseBody) {
+          if (responseBody && responseBody.quoteId) {
+            document.getElementById('quoteId').value = responseBody.quoteId;
+          }
+        });
+    });
+  });
+
+  document.getElementById('submitButton').addEventListener('click', function () {
+    run('Submit request', function () {
+      var quoteId = field('quoteId');
+      if (!quoteId) throw new Error('Request a quote first, or paste a quote ID.');
+      var idempotencyKey = field('idempotencyKey');
+      if (!idempotencyKey) throw new Error('Set an idempotency key first.');
+      callApi('/v1/intents/submit', {
+        method: 'POST',
+        headers: { 'idempotency-key': idempotencyKey },
+        body: { quoteId: quoteId, idempotencyKey: idempotencyKey },
+        label: 'Submit request'
+      }).then(function (responseBody) {
+        if (responseBody && responseBody.intentId) {
+          document.getElementById('intentId').value = responseBody.intentId;
+        }
+      });
+    });
+  });
+
+  document.getElementById('statusButton').addEventListener('click', function () {
+    run('Status request', function () {
+      var intentId = field('intentId');
+      if (!intentId) throw new Error('Submit a quote first, or paste an intent ID.');
+      callApi('/v1/intents/' + encodeURIComponent(intentId), {
+        method: 'GET',
+        label: 'Status request'
+      });
+    });
+  });
+
+  document.getElementById('refundButton').addEventListener('click', function () {
+    run('Refund request', function () {
+      var intentId = field('intentId');
+      if (!intentId) throw new Error('Submit a quote first, or paste an intent ID.');
+      callApi('/v1/intents/' + encodeURIComponent(intentId) + '/refund', {
+        method: 'POST',
+        body: {},
+        label: 'Refund request'
+      });
+    });
+  });
+
+  document.getElementById('deadline').value = new Date(Date.now() + 86400000).toISOString();
+  document.getElementById('idempotencyKey').value =
+    (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : 'idem-' + Date.now();
+</script>
+</body>
+</html>

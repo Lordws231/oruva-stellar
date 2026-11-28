@@ -55,7 +55,7 @@ invoke "init" --id "$CONTRACT_ID" --source-account issuer -- \
   init --admin "$ADMIN"
 
 invoke "register solver" --id "$CONTRACT_ID" --source-account external-driver-wallet -- \
-  register-solver --solver "$SOLVER" --bond-amount 10000000
+  register-solver --solver "$SOLVER" --bond-asset "$USDC_SAC" --bond-amount 10000000
 
 DEADLINE=$(( $(latest_ledger) + 200 ))
 invoke "create intent-001" --id "$CONTRACT_ID" --source-account rider -- \
@@ -64,6 +64,9 @@ invoke "create intent-001" --id "$CONTRACT_ID" --source-account rider -- \
   --min-output-amount 2700000 --output-asset "$USDC_SAC" \
   --output-chain "stellar" --recipient "$DRIVER" \
   --deadline-ledger "$DEADLINE" --kind SwapConvert
+
+invoke "claim intent-001" --id "$CONTRACT_ID" --source-account external-driver-wallet -- \
+  claim-intent --solver "$SOLVER" --intent-hash "intent-001"
 
 invoke "fill intent-001" --id "$CONTRACT_ID" --source-account external-driver-wallet -- \
   fill-intent --solver "$SOLVER" --intent-hash "intent-001" \
@@ -89,5 +92,12 @@ invoke "refund intent-002" --id "$CONTRACT_ID" --source-account rider -- \
 
 invoke "get intent-002" --id "$CONTRACT_ID" --source-account rider -- \
   get-intent --intent-hash "intent-002"
+
+invoke "slash solver bond" --id "$CONTRACT_ID" --source-account issuer -- \
+  record-penalty --solver "$SOLVER" --intent-hash "intent-002" \
+  --reason "demo slash after refund" --slash-amount 2000000
+
+invoke "get solver" --id "$CONTRACT_ID" --source-account rider -- \
+  get-solver --solver "$SOLVER"
 
 echo "contract: https://stellar.expert/explorer/testnet/contract/$CONTRACT_ID"

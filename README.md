@@ -403,14 +403,22 @@ change was needed.
    indexing, judge evidence fields, source-tagged ledger sub-balances,
    and the CCTP payout state machine. Stellar wiring tests pass 16/16.
    The Stellar surface stays dark unless enabled, and the NGN ride flow
-   is untouched. Production transaction submission still needs the
-   Stellar SDK transaction builder, and the CCTP wrapper contract is
-   not built yet. The wiring design is in
+   is untouched. The Stellar SDK transaction builder shipped in
+   build 0441 with testnet proof through the platform adapter, and
+   the CCTP wrapper contract is testnet-proven on the Polygon route
+   (see `docs/cctp-wrapper-evidence.md`). The wiring design is in
    `docs/platform-wiring-spec.md`.
-3. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
+3. **Stellar Intents completion.** Solver bond escrow and slashing,
+   SEP-53 signing with fee-bump sponsorship, cross-chain delivery
+   proof verification, sandbox API keys and the developer dashboard
+   are built and testnet-verified (see
+   `docs/oruva-stellar-intents.md`). Mainnet deployment stays gated
+   on custody validation, SEC/VASP legal clearance, an independent
+   penetration test and founder authorization.
+4. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
    completed-ride rewards) from Oruva's allocation, separate from fare
    settlement.
-4. **Security review.** The contract is a demo: admin is a single key
+5. **Security review.** The contract is a demo: admin is a single key
    (the Oruva platform account). Before any mainnet use: multi-signature
    admin, time-locked refunds (auto-refund if a ride never completes),
    and an independent audit.

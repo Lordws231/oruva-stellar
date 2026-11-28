@@ -38,3 +38,38 @@ export {
   WebhookDeliveryQueue,
   buildSignedWebhook,
 } from './webhooks.js';
+export {
+  SEP53_PREFIX,
+  buildIntentMessage,
+  buildIntentSigningPayload,
+  canonicalJson,
+  createEd25519Signer,
+  rawPublicKeyToStellarAddress,
+  sep53Hash,
+  signIntent,
+  signSep53Message,
+  stellarAddressToRawPublicKey,
+  verifyIntentSignature,
+  verifySep53Message,
+} from './sep53.js';
+export {
+  FeeBumpSponsor,
+  buildFeeBumpRequest,
+  createFeeBumpEnvelope,
+} from './feeBump.js';
+export {
+  parseCctpMessage,
+  verifyCctpDeliveryProof,
+  verifyDeliveryProof,
+  verifyNearDeliveryProof,
+} from './deliveryProof.js';
+export {
+  API_KEY_SCOPES,
+  ApiKeyStore,
+  createApiKeyStore,
+  hashApiKey,
+  issueKey,
+  listKeys,
+  revokeKey,
+  verifyKey,
+} from './apiKeys.js';
