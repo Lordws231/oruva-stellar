@@ -396,14 +396,16 @@ change was needed.
    clear. Fallback if CCTP forwarding is unavailable: ROZO or NEAR
    Intents routing; Oruva inventory conversion is an emergency fallback
    only.
-2. **Platform wiring.** The backend service layer in `backend/` provisions
-   default wallets, credits external deposits, stores payout preferences,
-   and orchestrates withdrawals and conversions. The production Oruva
-   platform still needs to call `lock_fare` on ride acceptance, run the
-   dual-confirmation release on trip completion, call `refund_fare` on
-   cancellation, index the contract events for settlement records, and
-   run the CCTP bridge adapter. The wiring design, including the
-   source-tagged ledger sub-balances and the payout state machine, is in
+2. **Platform wiring.** Build 0440 wires the production Oruva platform to
+   the dual-confirmation testnet contract (platform commit `e748b852`,
+   Railway deployment `be459ff9` Active). The wiring includes wallet
+   preflight checks, single-use idempotent submission records, event
+   indexing, judge evidence fields, source-tagged ledger sub-balances,
+   and the CCTP payout state machine. Stellar wiring tests pass 16/16.
+   The Stellar surface stays dark unless enabled, and the NGN ride flow
+   is untouched. Production transaction submission still needs the
+   Stellar SDK transaction builder, and the CCTP wrapper contract is
+   not built yet. The wiring design is in
    `docs/platform-wiring-spec.md`.
 3. **ORVA rewards.** A second flow that pays ORVA bonuses (referrals,
    completed-ride rewards) from Oruva's allocation, separate from fare
